@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "dev.coolrequest.tool.coder"
-version = "1.0-SNAPSHOT"
+version = "v1.0.0"
 
 repositories {
     mavenLocal()
@@ -20,7 +20,7 @@ intellij {
 
 dependencies {
     testImplementation(kotlin("test"))
-    implementation(fileTree("/libs"))
+    implementation(fileTree("$projectDir/libs"))
 }
 
 tasks {
