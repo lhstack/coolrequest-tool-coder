@@ -10,4 +10,5 @@ public interface Icons {
     Icon DEMO_ACTION = IconLoader.findIcon(ClassLoaderUtils.getResource("icons/demo_action.svg"));
     Icon COMPILE_ACTION = IconLoader.findIcon(ClassLoaderUtils.getResource("icons/compile_action.svg"));
     Icon SAVE_ACTION = IconLoader.findIcon(ClassLoaderUtils.getResource("icons/save_action.svg"));
+    Icon INSTALL_ACTION = IconLoader.findIcon(ClassLoaderUtils.getResource("icons/install_action.svg"));
 }

@@ -12,10 +12,11 @@ import com.intellij.ui.JBSplitter;
 import com.intellij.ui.components.JBTextArea;
 import dev.coolrequest.tool.coder.custom.CompileAction;
 import dev.coolrequest.tool.coder.custom.DemoAction;
-import dev.coolrequest.tool.coder.custom.SaveAction;
+import dev.coolrequest.tool.coder.custom.InstallAction;
 import dev.coolrequest.tool.common.I18n;
 import dev.coolrequest.tool.components.MultiLanguageTextField;
 import dev.coolrequest.tool.utils.ClassLoaderUtils;
+import groovy.lang.GroovyShell;
 import org.apache.commons.lang3.StringUtils;
 
 import javax.swing.*;
@@ -36,18 +37,15 @@ public class CoderView extends JPanel implements DocumentListener {
     private final JComboBox<String> coderTargetBox = new JComboBox<>();
     private final LeftSource leftSource;
     private final RightTarget rightTarget;
-    private final List<Coder> coders;
+    private final List<Coder> baseCoders;
+    private final List<Coder> dynamicCoders;
 
     public CoderView(Project project) {
         super(new BorderLayout());
-        rightTarget = new RightTarget(project);
-        this.leftSource = new LeftSource();
-        JBSplitter jbSplitter = new JBSplitter();
-        jbSplitter.setFirstComponent(leftSource);
-        jbSplitter.setSecondComponent(rightTarget);
+
         //加载Coder的实现
-        List<Class<?>> encoderClasses = ClassLoaderUtils.scan(clazz -> true, "dev.coolrequest.tool.coder.impl");
-        this.coders = encoderClasses.stream().map(item -> {
+        List<Class<?>> coderClasses = ClassLoaderUtils.scan(clazz -> true, "dev.coolrequest.tool.coder.impl");
+        this.baseCoders = coderClasses.stream().map(item -> {
                     try {
                         return item.getConstructor().newInstance();
                     } catch (Throwable ignore) {
@@ -57,18 +55,20 @@ public class CoderView extends JPanel implements DocumentListener {
                 .map(Coder.class::cast)
                 .sorted(Comparator.comparing(Coder::ordered))
                 .collect(Collectors.toList());
+        dynamicCoders = new ArrayList<>(baseCoders);
+        GroovyShell groovyShell = createGroovyShell();
         //左侧下拉框内容
         Set<String> source = new HashSet<>();
         //右侧下拉框内容
         Set<String> target = new HashSet<>();
         //左侧第一个下拉框对应的Coder
-        Coder coder = coders.get(0);
-        coders.forEach(encoder -> {
+        Coder coder = dynamicCoders.get(0);
+        dynamicCoders.forEach(coderItem -> {
             //填充左侧下拉框内容
-            source.add(encoder.kind().source);
+            source.add(coderItem.kind().source);
             //填充右侧下拉框内容,前提是左侧第一个下拉框支持的
-            if (StringUtils.equals(encoder.kind().source, coder.kind().source)) {
-                target.add(encoder.kind().target);
+            if (StringUtils.equals(coderItem.kind().source, coder.kind().source)) {
+                target.add(coderItem.kind().target);
             }
         });
 
@@ -80,22 +80,37 @@ public class CoderView extends JPanel implements DocumentListener {
         coderSourceBox.addItemListener(e -> {
             String sourceValue = String.valueOf(coderSourceBox.getSelectedItem());
             coderTargetBox.removeAllItems();
-            coders.stream().filter(item -> StringUtils.equals(item.kind().source, sourceValue)).map(item -> item.kind().target).forEach(coderTargetBox::addItem);
-            encoder();
+            dynamicCoders.stream().filter(item -> StringUtils.equals(item.kind().source, sourceValue)).map(item -> item.kind().target).forEach(coderTargetBox::addItem);
+            transform();
         });
-        coderTargetBox.addItemListener(e -> encoder());
+        coderTargetBox.addItemListener(e -> transform());
+
+        rightTarget = new RightTarget(project,groovyShell);
+        this.leftSource = new LeftSource();
+
+        JBSplitter jbSplitter = new JBSplitter();
+        jbSplitter.setFirstComponent(leftSource);
+        jbSplitter.setSecondComponent(rightTarget);
 
         add(jbSplitter, BorderLayout.CENTER);
     }
 
-    private void encoder() {
-        Object encoderValue = coderSourceBox.getSelectedItem();
-        if (encoderValue == null) return;
+    /**
+     * 创建groovyShell
+     * @return
+     */
+    private GroovyShell createGroovyShell() {
+        return new GroovyShell();
+    }
+
+    private void transform() {
+        Object sourceCoderValue = coderSourceBox.getSelectedItem();
+        if (sourceCoderValue == null) return;
         Object targetValue = coderTargetBox.getSelectedItem();
         if (targetValue == null) return;
         if (leftSource.getSourceTextArea().getText().equalsIgnoreCase("")) return;
-        for (Coder coder : this.coders) {
-            if (coder.kind().is(String.valueOf(encoderValue), String.valueOf(targetValue))) {
+        for (Coder coder : this.dynamicCoders) {
+            if (coder.kind().is(String.valueOf(sourceCoderValue), String.valueOf(targetValue))) {
                 //转换
                 rightTarget.getTargetTextArea().setText(coder.transform(leftSource.getSourceTextArea().getText()));
             }
@@ -118,17 +133,17 @@ public class CoderView extends JPanel implements DocumentListener {
 
     @Override
     public void insertUpdate(DocumentEvent e) {
-        encoder();
+        transform();
     }
 
     @Override
     public void removeUpdate(DocumentEvent e) {
-        encoder();
+        transform();
     }
 
     @Override
     public void changedUpdate(DocumentEvent e) {
-        encoder();
+        transform();
     }
 
     private class RightTarget extends JPanel {
@@ -137,7 +152,7 @@ public class CoderView extends JPanel implements DocumentListener {
 
         private final AtomicBoolean state = new AtomicBoolean(false);
 
-        public RightTarget(Project project) {
+        public RightTarget(Project project, GroovyShell groovyShell) {
             super(new BorderLayout());
             this.project = project;
             targetTextArea.setEditable(false);
@@ -147,7 +162,7 @@ public class CoderView extends JPanel implements DocumentListener {
                 public void mouseClicked(MouseEvent e) {
                     if (e.getButton() == MouseEvent.BUTTON1) {
                         try {
-                            customCoderMouseClicked();
+                            customCoderMouseClicked(groovyShell);
                         } catch (Throwable err) {
                             Messages.showErrorDialog(err.getMessage(), I18n.getString("coder.custom.title"));
                         }
@@ -163,12 +178,13 @@ public class CoderView extends JPanel implements DocumentListener {
         /**
          * 自定义Coder点击事件
          */
-        private void customCoderMouseClicked() {
+        private void customCoderMouseClicked(GroovyShell groovyShell) {
             if (state.compareAndSet(false, true)) {
                 JDialog dialog = new JDialog();
                 dialog.setSize(1000, 600);
+                dialog.setAlwaysOnTop(true);
                 dialog.setLocationRelativeTo(null);
-                dialog.getContentPane().add(createCustomCoderPanel());
+                dialog.getContentPane().add(createCustomCoderPanel(groovyShell));
                 dialog.setVisible(true);
                 dialog.addWindowListener(new WindowAdapter() {
                     @Override
@@ -179,7 +195,7 @@ public class CoderView extends JPanel implements DocumentListener {
             }
         }
 
-        private Component createCustomCoderPanel() {
+        private Component createCustomCoderPanel(GroovyShell groovyShell) {
             LanguageFileType groovyFileType = (LanguageFileType) FileTypeManager.getInstance().getFileTypeByExtension("groovy");
             MultiLanguageTextField leftFieldText = new MultiLanguageTextField(groovyFileType, project);
             JBTextArea rightFieldText = new JBTextArea();
@@ -187,8 +203,8 @@ public class CoderView extends JPanel implements DocumentListener {
             //设置actionGroup
             DefaultActionGroup defaultActionGroup = new DefaultActionGroup();
             defaultActionGroup.add(new DemoAction(leftFieldText, rightFieldText));
-            defaultActionGroup.add(new CompileAction(leftFieldText, rightFieldText));
-            defaultActionGroup.add(new SaveAction(leftFieldText, rightFieldText));
+            defaultActionGroup.add(new CompileAction(leftFieldText, rightFieldText,groovyShell));
+            defaultActionGroup.add(new InstallAction(leftFieldText, rightFieldText,groovyShell,coderSourceBox,coderTargetBox,baseCoders,dynamicCoders));
             SimpleToolWindowPanel panel = new SimpleToolWindowPanel(true, false);
             ActionToolbar actionToolbar = ActionManager.getInstance().createActionToolbar("custom.coder", defaultActionGroup, false);
             actionToolbar.setLayoutPolicy(ActionToolbar.AUTO_LAYOUT_POLICY);
