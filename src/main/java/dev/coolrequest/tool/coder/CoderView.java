@@ -1,9 +1,8 @@
-package dev.coolrequest.tool.coder.view;
+package dev.coolrequest.tool.coder;
 
 import com.intellij.ui.JBSplitter;
 import com.intellij.ui.components.JBTextArea;
-import dev.coolrequest.tool.coder.Coder;
-import dev.coolrequest.tool.coder.utils.ClassLoaderUtils;
+import dev.coolrequest.tool.utils.ClassLoaderUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import javax.swing.*;
@@ -26,6 +25,7 @@ public class CoderView extends JPanel implements DocumentListener {
         JBSplitter jbSplitter = new JBSplitter();
         jbSplitter.setSecondComponent(rightTarget);
         jbSplitter.setFirstComponent(leftSource);
+        //加载Coder的实现
         List<Class<?>> encoderClasses = ClassLoaderUtils.scan(clazz -> true, "dev.coolrequest.tool.coder.impl");
         this.coders = encoderClasses.stream().map(item -> {
                     try {
@@ -37,19 +37,26 @@ public class CoderView extends JPanel implements DocumentListener {
                 .map(Coder.class::cast)
                 .sorted(Comparator.comparing(Coder::ordered))
                 .collect(Collectors.toList());
+        //左侧下拉框内容
         Set<String> source = new HashSet<>();
+        //右侧下拉框内容
         Set<String> target = new HashSet<>();
+        //左侧第一个下拉框对应的Coder
         Coder coder = coders.get(0);
         coders.forEach(encoder -> {
+            //填充左侧下拉框内容
             source.add(encoder.kind().source);
+            //填充右侧下拉框内容,前提是左侧第一个下拉框支持的
             if (StringUtils.equals(encoder.kind().source, coder.kind().source)) {
                 target.add(encoder.kind().target);
             }
         });
 
+        //添加到box中
         source.forEach(encoderSourceBox::addItem);
         target.forEach(encoderTargetBox::addItem);
 
+        //添加左侧下拉框数据变更监听器,当左侧下拉框数据发生变更,联动更新右侧下拉框内容
         encoderSourceBox.addItemListener(e -> {
             String sourceValue = String.valueOf(encoderSourceBox.getSelectedItem());
             encoderTargetBox.removeAllItems();
@@ -70,11 +77,13 @@ public class CoderView extends JPanel implements DocumentListener {
         if (leftSource.getSourceTextArea().getText().equalsIgnoreCase("")) return;
         for (Coder coder : this.coders) {
             if (coder.kind().is(String.valueOf(encoderValue), String.valueOf(targetValue))) {
+                //转换
                 rightTarget.getTargetTextArea().setText(coder.transform(leftSource.getSourceTextArea().getText()));
             }
         }
     }
 
+    //创建FlowLayout布局面板,靠左对齐
     private JPanel createFlowLayoutPanel(JComponent component) {
         JPanel jPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         jPanel.add(component);
@@ -102,7 +111,9 @@ public class CoderView extends JPanel implements DocumentListener {
         public RightTarget() {
             super(new BorderLayout());
             targetTextArea.setEditable(false);
+            //添加下拉框,左对齐
             add(createFlowLayoutPanel(encoderTargetBox), BorderLayout.NORTH);
+            //内容框
             add(new JScrollPane(targetTextArea), BorderLayout.CENTER);
         }
 
@@ -116,8 +127,11 @@ public class CoderView extends JPanel implements DocumentListener {
 
         public LeftSource() {
             super(new BorderLayout());
+            //下拉框
             add(createFlowLayoutPanel(encoderSourceBox), BorderLayout.NORTH);
+            //内容框
             add(new JScrollPane(sourceTextArea), BorderLayout.CENTER);
+            //监听内容变更
             sourceTextArea.getDocument().addDocumentListener(CoderView.this);
         }
 
