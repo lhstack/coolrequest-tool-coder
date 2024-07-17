@@ -1,7 +1,5 @@
 package dev.coolrequest.tool.script;
 
-import com.intellij.openapi.editor.EditorSettings;
-import com.intellij.openapi.editor.ex.EditorEx;
 import com.intellij.openapi.fileTypes.FileTypeManager;
 import com.intellij.openapi.fileTypes.LanguageFileType;
 import com.intellij.openapi.project.Project;
@@ -14,13 +12,13 @@ import com.intellij.ui.LanguageTextField;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.components.JBTextArea;
 import dev.coolrequest.tool.common.I18n;
+import dev.coolrequest.tool.components.MultiLanguageTextField;
 import groovy.lang.Binding;
 import groovy.lang.GroovyClassLoader;
 import groovy.lang.GroovyShell;
 import groovy.lang.Script;
 import org.apache.commons.lang3.StringUtils;
 import org.codehaus.groovy.control.CompilerConfiguration;
-import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import java.awt.*;
@@ -115,18 +113,7 @@ public class ScriptView extends JPanel {
         public Left(Project project) {
             super(new BorderLayout());
             LanguageFileType groovyFileType = (LanguageFileType) FileTypeManager.getInstance().getFileTypeByExtension("groovy");
-            languageTextField = new LanguageTextField(groovyFileType.getLanguage(), project, "", false) {
-                @Override
-                protected @NotNull EditorEx createEditor() {
-                    EditorEx editor = super.createEditor();
-                    editor.setHorizontalScrollbarVisible(true);
-                    editor.setVerticalScrollbarVisible(true);
-                    EditorSettings settings = editor.getSettings();
-                    settings.setLineNumbersShown(true);
-                    settings.setRightMarginShown(true);
-                    return editor;
-                }
-            };
+            languageTextField = new MultiLanguageTextField(groovyFileType, project);
             JButton button = new JButton("添加classPath");
             button.addMouseListener(new MouseAdapter() {
                 @Override

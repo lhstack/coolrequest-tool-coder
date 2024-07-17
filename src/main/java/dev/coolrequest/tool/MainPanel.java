@@ -19,7 +19,7 @@ public class MainPanel extends JPanel implements CoolToolPanel {
         setLayout(new BorderLayout());
         JBTabs jbTabs = new JBTabsImpl(project);
 
-        TabInfo encoderTabInfo = new TabInfo(new CoderView());
+        TabInfo encoderTabInfo = new TabInfo(new CoderView(project));
         encoderTabInfo.setText(I18n.getString("coder.title"));
         jbTabs.addTab(encoderTabInfo);
 

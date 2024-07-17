@@ -1,7 +1,20 @@
 package dev.coolrequest.tool.coder;
 
+import com.intellij.openapi.actionSystem.ActionManager;
+import com.intellij.openapi.actionSystem.ActionToolbar;
+import com.intellij.openapi.actionSystem.DefaultActionGroup;
+import com.intellij.openapi.fileTypes.FileTypeManager;
+import com.intellij.openapi.fileTypes.LanguageFileType;
+import com.intellij.openapi.project.Project;
+import com.intellij.openapi.ui.Messages;
+import com.intellij.openapi.ui.SimpleToolWindowPanel;
 import com.intellij.ui.JBSplitter;
 import com.intellij.ui.components.JBTextArea;
+import dev.coolrequest.tool.coder.custom.CompileAction;
+import dev.coolrequest.tool.coder.custom.DemoAction;
+import dev.coolrequest.tool.coder.custom.SaveAction;
+import dev.coolrequest.tool.common.I18n;
+import dev.coolrequest.tool.components.MultiLanguageTextField;
 import dev.coolrequest.tool.utils.ClassLoaderUtils;
 import org.apache.commons.lang3.StringUtils;
 
@@ -9,22 +22,29 @@ import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.util.List;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 public class CoderView extends JPanel implements DocumentListener {
-    private final JComboBox<String> encoderSourceBox = new JComboBox<>();
-    private final JComboBox<String> encoderTargetBox = new JComboBox<>();
-    private final LeftSource leftSource = new LeftSource();
-    private final RightTarget rightTarget = new RightTarget();
+    private final JComboBox<String> coderSourceBox = new JComboBox<>();
+    private final JComboBox<String> coderTargetBox = new JComboBox<>();
+    private final LeftSource leftSource;
+    private final RightTarget rightTarget;
     private final List<Coder> coders;
 
-    public CoderView() {
+    public CoderView(Project project) {
         super(new BorderLayout());
+        rightTarget = new RightTarget(project);
+        this.leftSource = new LeftSource();
         JBSplitter jbSplitter = new JBSplitter();
-        jbSplitter.setSecondComponent(rightTarget);
         jbSplitter.setFirstComponent(leftSource);
+        jbSplitter.setSecondComponent(rightTarget);
         //加载Coder的实现
         List<Class<?>> encoderClasses = ClassLoaderUtils.scan(clazz -> true, "dev.coolrequest.tool.coder.impl");
         this.coders = encoderClasses.stream().map(item -> {
@@ -53,26 +73,25 @@ public class CoderView extends JPanel implements DocumentListener {
         });
 
         //添加到box中
-        source.forEach(encoderSourceBox::addItem);
-        target.forEach(encoderTargetBox::addItem);
+        source.forEach(coderSourceBox::addItem);
+        target.forEach(coderTargetBox::addItem);
 
         //添加左侧下拉框数据变更监听器,当左侧下拉框数据发生变更,联动更新右侧下拉框内容
-        encoderSourceBox.addItemListener(e -> {
-            String sourceValue = String.valueOf(encoderSourceBox.getSelectedItem());
-            encoderTargetBox.removeAllItems();
-            coders.stream().filter(item -> StringUtils.equals(item.kind().source, sourceValue)).map(item -> item.kind().target).forEach(encoderTargetBox::addItem);
+        coderSourceBox.addItemListener(e -> {
+            String sourceValue = String.valueOf(coderSourceBox.getSelectedItem());
+            coderTargetBox.removeAllItems();
+            coders.stream().filter(item -> StringUtils.equals(item.kind().source, sourceValue)).map(item -> item.kind().target).forEach(coderTargetBox::addItem);
             encoder();
         });
-        encoderTargetBox.addItemListener(e -> encoder());
+        coderTargetBox.addItemListener(e -> encoder());
 
         add(jbSplitter, BorderLayout.CENTER);
     }
 
     private void encoder() {
-        Object encoderValue = encoderSourceBox.getSelectedItem();
+        Object encoderValue = coderSourceBox.getSelectedItem();
         if (encoderValue == null) return;
-
-        Object targetValue = encoderTargetBox.getSelectedItem();
+        Object targetValue = coderTargetBox.getSelectedItem();
         if (targetValue == null) return;
         if (leftSource.getSourceTextArea().getText().equalsIgnoreCase("")) return;
         for (Coder coder : this.coders) {
@@ -84,9 +103,16 @@ public class CoderView extends JPanel implements DocumentListener {
     }
 
     //创建FlowLayout布局面板,靠左对齐
-    private JPanel createFlowLayoutPanel(JComponent component) {
-        JPanel jPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+    private JPanel createFlowLayoutPanel(JComponent component, int layout) {
+        JPanel jPanel = new JPanel(new FlowLayout(layout));
         jPanel.add(component);
+        return jPanel;
+    }
+
+    private JPanel createJustifiedPanel(JComponent left, JComponent right) {
+        JPanel jPanel = new JPanel(new GridLayout(1, 2));
+        jPanel.add(createFlowLayoutPanel(left, FlowLayout.LEFT));
+        jPanel.add(createFlowLayoutPanel(right, FlowLayout.RIGHT));
         return jPanel;
     }
 
@@ -107,14 +133,72 @@ public class CoderView extends JPanel implements DocumentListener {
 
     private class RightTarget extends JPanel {
         private final JBTextArea targetTextArea = new JBTextArea();
+        private final Project project;
 
-        public RightTarget() {
+        private final AtomicBoolean state = new AtomicBoolean(false);
+
+        public RightTarget(Project project) {
             super(new BorderLayout());
+            this.project = project;
             targetTextArea.setEditable(false);
+            JButton customCoder = new JButton(I18n.getString("coder.custom.title"));
+            customCoder.addMouseListener(new MouseAdapter() {
+                @Override
+                public void mouseClicked(MouseEvent e) {
+                    if (e.getButton() == MouseEvent.BUTTON1) {
+                        try {
+                            customCoderMouseClicked();
+                        } catch (Throwable err) {
+                            Messages.showErrorDialog(err.getMessage(), I18n.getString("coder.custom.title"));
+                        }
+                    }
+                }
+            });
             //添加下拉框,左对齐
-            add(createFlowLayoutPanel(encoderTargetBox), BorderLayout.NORTH);
+            add(createJustifiedPanel(coderTargetBox, customCoder), BorderLayout.NORTH);
             //内容框
             add(new JScrollPane(targetTextArea), BorderLayout.CENTER);
+        }
+
+        /**
+         * 自定义Coder点击事件
+         */
+        private void customCoderMouseClicked() {
+            if (state.compareAndSet(false, true)) {
+                JDialog dialog = new JDialog();
+                dialog.setSize(1000, 600);
+                dialog.setLocationRelativeTo(null);
+                dialog.getContentPane().add(createCustomCoderPanel());
+                dialog.setVisible(true);
+                dialog.addWindowListener(new WindowAdapter() {
+                    @Override
+                    public void windowClosing(WindowEvent e) {
+                        state.set(false);
+                    }
+                });
+            }
+        }
+
+        private Component createCustomCoderPanel() {
+            LanguageFileType groovyFileType = (LanguageFileType) FileTypeManager.getInstance().getFileTypeByExtension("groovy");
+            MultiLanguageTextField leftFieldText = new MultiLanguageTextField(groovyFileType, project);
+            JBTextArea rightFieldText = new JBTextArea();
+            rightFieldText.setEditable(false);
+            //设置actionGroup
+            DefaultActionGroup defaultActionGroup = new DefaultActionGroup();
+            defaultActionGroup.add(new DemoAction(leftFieldText, rightFieldText));
+            defaultActionGroup.add(new CompileAction(leftFieldText, rightFieldText));
+            defaultActionGroup.add(new SaveAction(leftFieldText, rightFieldText));
+            SimpleToolWindowPanel panel = new SimpleToolWindowPanel(true, false);
+            ActionToolbar actionToolbar = ActionManager.getInstance().createActionToolbar("custom.coder", defaultActionGroup, false);
+            actionToolbar.setLayoutPolicy(ActionToolbar.AUTO_LAYOUT_POLICY);
+            panel.setToolbar(actionToolbar.getComponent());
+            JBSplitter splitter = new JBSplitter();
+            splitter.setFirstComponent(leftFieldText);
+            splitter.setSecondComponent(rightFieldText);
+            //设置内容
+            panel.setContent(splitter);
+            return panel;
         }
 
         public JBTextArea getTargetTextArea() {
@@ -128,7 +212,7 @@ public class CoderView extends JPanel implements DocumentListener {
         public LeftSource() {
             super(new BorderLayout());
             //下拉框
-            add(createFlowLayoutPanel(encoderSourceBox), BorderLayout.NORTH);
+            add(createFlowLayoutPanel(coderSourceBox, FlowLayout.LEFT), BorderLayout.NORTH);
             //内容框
             add(new JScrollPane(sourceTextArea), BorderLayout.CENTER);
             //监听内容变更
