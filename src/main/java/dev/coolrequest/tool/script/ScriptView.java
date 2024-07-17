@@ -133,6 +133,7 @@ public class ScriptView extends JPanel {
                 public void mouseClicked(MouseEvent e) {
                     if (e.getButton() == MouseEvent.BUTTON1) {
                         JDialog dialog = new JDialog();
+                        dialog.setTitle("添加ClassPath");
                         dialog.setLayout(new BorderLayout());
                         dialog.setSize(400, 400);
                         dialog.setLocationRelativeTo(null);
