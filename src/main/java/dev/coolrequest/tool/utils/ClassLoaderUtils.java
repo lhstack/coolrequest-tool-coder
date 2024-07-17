@@ -1,4 +1,4 @@
-package dev.coolrequest.tool.coder.utils;
+package dev.coolrequest.tool.utils;
 
 import java.io.File;
 import java.net.JarURLConnection;
