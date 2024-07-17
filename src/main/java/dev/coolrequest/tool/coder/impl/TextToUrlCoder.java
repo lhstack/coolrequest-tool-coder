@@ -1,13 +1,14 @@
-package dev.coolrequest.tool.coder.encoder;
+package dev.coolrequest.tool.coder.impl;
 
+import dev.coolrequest.tool.coder.Coder;
 import dev.coolrequest.tool.coder.Kind;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 
-public class TextToUrlEncoder implements Encoder {
+public class TextToUrlCoder implements Coder {
     @Override
-    public String encode(String data) {
+    public String transform(String data) {
         return URLEncoder.encode(data, StandardCharsets.UTF_8);
     }
 

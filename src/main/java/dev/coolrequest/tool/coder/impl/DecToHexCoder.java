@@ -1,14 +1,15 @@
-package dev.coolrequest.tool.coder.encoder;
+package dev.coolrequest.tool.coder.impl;
 
+import dev.coolrequest.tool.coder.Coder;
 import dev.coolrequest.tool.coder.Kind;
 
-public class DecToHexEncoder implements Encoder {
+public class DecToHexCoder implements Coder {
     @Override
-    public String encode(String data) {
+    public String transform(String data) {
         try {
             return Long.toHexString(Long.parseLong(data)).toUpperCase();
         } catch (Exception e) {
-            return "";
+            return "dec to hex fail,error: " + e.getMessage();
         }
     }
 

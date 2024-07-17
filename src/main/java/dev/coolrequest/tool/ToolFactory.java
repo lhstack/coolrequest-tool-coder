@@ -1,7 +1,4 @@
-package dev.coolrequest.tool.coder;
-
-import dev.coolrequest.tool.CoolToolPanel;
-import dev.coolrequest.tool.ToolPanelFactory;
+package dev.coolrequest.tool;
 
 public class ToolFactory implements ToolPanelFactory {
 

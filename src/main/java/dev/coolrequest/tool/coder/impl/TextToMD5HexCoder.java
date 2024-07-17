@@ -1,0 +1,17 @@
+package dev.coolrequest.tool.coder.impl;
+
+import dev.coolrequest.tool.coder.Kind;
+import dev.coolrequest.tool.coder.Coder;
+import org.apache.commons.codec.digest.DigestUtils;
+
+public class TextToMD5HexCoder implements Coder {
+    @Override
+    public String transform(String data) {
+        return DigestUtils.md5Hex(data);
+    }
+
+    @Override
+    public Kind kind() {
+        return Kind.of("text", "md5Hex");
+    }
+}

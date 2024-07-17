@@ -1,39 +1,61 @@
-package dev.coolrequest.tool.coder;
+package dev.coolrequest.tool.coder.view;
 
 import com.intellij.ui.JBSplitter;
 import com.intellij.ui.components.JBTextArea;
-import dev.coolrequest.tool.coder.encoder.Encoder;
-import dev.coolrequest.tool.coder.encoder.Encoders;
+import dev.coolrequest.tool.coder.Coder;
+import dev.coolrequest.tool.coder.utils.ClassLoaderUtils;
+import org.apache.commons.lang3.StringUtils;
 
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import java.awt.*;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
-public class EncoderView extends JPanel implements DocumentListener {
+public class CoderView extends JPanel implements DocumentListener {
     private final JComboBox<String> encoderSourceBox = new JComboBox<>();
     private final JComboBox<String> encoderTargetBox = new JComboBox<>();
     private final LeftSource leftSource = new LeftSource();
     private final RightTarget rightTarget = new RightTarget();
+    private final List<Coder> coders;
 
-    public EncoderView() {
+    public CoderView() {
         super(new BorderLayout());
         JBSplitter jbSplitter = new JBSplitter();
         jbSplitter.setSecondComponent(rightTarget);
         jbSplitter.setFirstComponent(leftSource);
-
+        List<Class<?>> encoderClasses = ClassLoaderUtils.scan(clazz -> true, "dev.coolrequest.tool.coder.impl");
+        this.coders = encoderClasses.stream().map(item -> {
+                    try {
+                        return item.getConstructor().newInstance();
+                    } catch (Throwable ignore) {
+                        return null;
+                    }
+                }).filter(Objects::nonNull)
+                .map(Coder.class::cast)
+                .sorted(Comparator.comparing(Coder::ordered))
+                .collect(Collectors.toList());
         Set<String> source = new HashSet<>();
         Set<String> target = new HashSet<>();
-        for (Encoder encoder : Encoders.getEncoders()) {
+        Coder coder = coders.get(0);
+        coders.forEach(encoder -> {
             source.add(encoder.kind().source);
-            target.add(encoder.kind().target);
-        }
+            if (StringUtils.equals(encoder.kind().source, coder.kind().source)) {
+                target.add(encoder.kind().target);
+            }
+        });
+
         source.forEach(encoderSourceBox::addItem);
         target.forEach(encoderTargetBox::addItem);
 
-        encoderSourceBox.addItemListener(e -> encoder());
+        encoderSourceBox.addItemListener(e -> {
+            String sourceValue = String.valueOf(encoderSourceBox.getSelectedItem());
+            encoderTargetBox.removeAllItems();
+            coders.stream().filter(item -> StringUtils.equals(item.kind().source, sourceValue)).map(item -> item.kind().target).forEach(encoderTargetBox::addItem);
+            encoder();
+        });
         encoderTargetBox.addItemListener(e -> encoder());
 
         add(jbSplitter, BorderLayout.CENTER);
@@ -46,10 +68,9 @@ public class EncoderView extends JPanel implements DocumentListener {
         Object targetValue = encoderTargetBox.getSelectedItem();
         if (targetValue == null) return;
         if (leftSource.getSourceTextArea().getText().equalsIgnoreCase("")) return;
-
-        for (Encoder encoder : Encoders.getEncoders()) {
-            if (encoder.kind().is(String.valueOf(encoderValue), String.valueOf(targetValue))) {
-                rightTarget.getTargetTextArea().setText(encoder.encode(leftSource.getSourceTextArea().getText()));
+        for (Coder coder : this.coders) {
+            if (coder.kind().is(String.valueOf(encoderValue), String.valueOf(targetValue))) {
+                rightTarget.getTargetTextArea().setText(coder.transform(leftSource.getSourceTextArea().getText()));
             }
         }
     }
@@ -76,10 +97,11 @@ public class EncoderView extends JPanel implements DocumentListener {
     }
 
     private class RightTarget extends JPanel {
-        private JBTextArea targetTextArea = new JBTextArea();
+        private final JBTextArea targetTextArea = new JBTextArea();
 
         public RightTarget() {
             super(new BorderLayout());
+            targetTextArea.setEditable(false);
             add(createFlowLayoutPanel(encoderTargetBox), BorderLayout.NORTH);
             add(new JScrollPane(targetTextArea), BorderLayout.CENTER);
         }
@@ -90,13 +112,13 @@ public class EncoderView extends JPanel implements DocumentListener {
     }
 
     private class LeftSource extends JPanel {
-        private JBTextArea sourceTextArea = new JBTextArea();
+        private final JBTextArea sourceTextArea = new JBTextArea();
 
         public LeftSource() {
             super(new BorderLayout());
             add(createFlowLayoutPanel(encoderSourceBox), BorderLayout.NORTH);
             add(new JScrollPane(sourceTextArea), BorderLayout.CENTER);
-            sourceTextArea.getDocument().addDocumentListener(EncoderView.this);
+            sourceTextArea.getDocument().addDocumentListener(CoderView.this);
         }
 
         public JBTextArea getSourceTextArea() {

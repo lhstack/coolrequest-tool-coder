@@ -1,12 +1,13 @@
-package dev.coolrequest.tool.coder.encoder;
+package dev.coolrequest.tool.coder.impl;
 
+import dev.coolrequest.tool.coder.Coder;
 import dev.coolrequest.tool.coder.Kind;
 
 import java.nio.charset.StandardCharsets;
 
-public class TextToUnicodeEncoder implements Encoder {
+public class TextToUnicodeCoder implements Coder {
     @Override
-    public String encode(String data) {
+    public String transform(String data) {
         byte[] bytes = data.getBytes(StandardCharsets.UTF_16BE);
         return bytesToUnicode(bytes);
     }

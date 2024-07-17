@@ -1,10 +1,11 @@
-package dev.coolrequest.tool.coder;
+package dev.coolrequest.tool;
 
 import com.intellij.openapi.project.Project;
 import com.intellij.ui.tabs.JBTabs;
 import com.intellij.ui.tabs.TabInfo;
 import com.intellij.ui.tabs.impl.JBTabsImpl;
-import dev.coolrequest.tool.CoolToolPanel;
+import dev.coolrequest.tool.coder.view.CoderView;
+import dev.coolrequest.tool.common.I18n;
 
 import javax.swing.*;
 import java.awt.*;
@@ -12,29 +13,18 @@ import java.awt.*;
 public class MainPanel extends JPanel implements CoolToolPanel {
     private Project project;
 
-    public MainPanel() {
-
-    }
-
-    /**
-     * test code
-     */
-    public MainPanel(Project project) {
-        this.project = project;
-    }
-
     @Override
     public JPanel createPanel() {
         setLayout(new BorderLayout());
         JBTabs jbTabs = new JBTabsImpl(project);
 
-        TabInfo encoderTabInfo = new TabInfo(new EncoderView());
-        encoderTabInfo.setText("Encoder");
+        TabInfo encoderTabInfo = new TabInfo(new CoderView());
+        encoderTabInfo.setText(I18n.getString("coder.title"));
         jbTabs.addTab(encoderTabInfo);
 
-        TabInfo decoderTabInfo = new TabInfo(new DecoderView());
-        decoderTabInfo.setText("Decoder");
-        jbTabs.addTab(decoderTabInfo);
+//        TabInfo decoderTabInfo = new TabInfo(new DecoderView());
+//        decoderTabInfo.setText("Decoder");
+//        jbTabs.addTab(decoderTabInfo);
         add(jbTabs.getComponent(), BorderLayout.CENTER);
         return this;
     }

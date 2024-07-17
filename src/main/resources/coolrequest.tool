@@ -1,1 +1,1 @@
-dev.coolrequest.tool.coder.ToolFactory
+dev.coolrequest.tool.ToolFactory
