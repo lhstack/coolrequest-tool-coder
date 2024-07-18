@@ -11,4 +11,6 @@ coder.registry("text", "hex", s -> {
     }
 })
 
-log.accept("注册函数: text to hex")
+log.info("注册函数: text to hex")
+log.warn("注册函数: text to hex")
+log.error("注册函数: text to hex")

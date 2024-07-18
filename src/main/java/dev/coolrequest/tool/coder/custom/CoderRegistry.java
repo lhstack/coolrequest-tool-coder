@@ -30,6 +30,11 @@ public class CoderRegistry {
             public Kind kind() {
                 return Kind.of(source, target);
             }
+
+            @Override
+            public int ordered() {
+                return 5;
+            }
         };
         boolean hasRegistry = false;
         for (Coder existCoder : existCoders) {

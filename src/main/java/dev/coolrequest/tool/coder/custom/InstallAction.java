@@ -5,10 +5,7 @@ import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.project.Project;
 import com.intellij.ui.components.JBTextArea;
 import dev.coolrequest.tool.coder.Coder;
-import dev.coolrequest.tool.common.I18n;
-import dev.coolrequest.tool.common.Icons;
-import dev.coolrequest.tool.common.LogContext;
-import dev.coolrequest.tool.common.Logger;
+import dev.coolrequest.tool.common.*;
 import dev.coolrequest.tool.components.MultiLanguageTextField;
 import dev.coolrequest.tool.state.GlobalState;
 import dev.coolrequest.tool.state.GlobalStateManager;
@@ -20,10 +17,10 @@ import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
-import java.util.HashSet;
+import java.util.Comparator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -56,14 +53,11 @@ public class InstallAction extends AnAction {
     public void actionPerformed(@NotNull AnActionEvent anActionEvent) {
         String code = this.codeTextField.getText();
         if (StringUtils.isNotBlank(code)) {
-            StringBuilder logBuffer = new StringBuilder();
-            Consumer<Object> log = s -> {
-                logBuffer.append(s).append("\n");
-            };
+            TextAreaLogger contextLogger = new TextAreaLogger("custom.coder", outputTextField);
             CoderRegistry coderRegistry = new CoderRegistry(this.dynamicCoders);
             Binding binding = new Binding();
             binding.setVariable("coder", coderRegistry);
-            binding.setVariable("log", log);
+            binding.setVariable("log", contextLogger);
             Script script = this.groovyShell.get().parse(code);
             script.setBinding(binding);
             script.run();
@@ -71,10 +65,11 @@ public class InstallAction extends AnAction {
                 dynamicCoders.clear();
                 dynamicCoders.addAll(this.baseCoders);
                 dynamicCoders.addAll(coderRegistry.getRegistryCoders());
+                dynamicCoders.sort(Comparator.comparing(Coder::ordered));
                 //左侧下拉框内容
-                Set<String> source = new HashSet<>();
+                Set<String> source = new LinkedHashSet<>();
                 //右侧下拉框内容
-                Set<String> target = new HashSet<>();
+                Set<String> target = new LinkedHashSet<>();
                 //左侧第一个下拉框对应的Coder
                 Coder coder = dynamicCoders.get(0);
                 dynamicCoders.forEach(coderItem -> {
@@ -91,7 +86,7 @@ public class InstallAction extends AnAction {
                 source.forEach(coderSourceBox::addItem);
                 target.forEach(coderTargetBox::addItem);
                 GlobalState globalState = GlobalStateManager.loadState(project);
-                globalState.putCache("CustomCoderScript", codeTextField.getText());
+                globalState.putCache(Constant.CODER_VIEW_CUSTOM_CODER_SCRIPT_CODE, codeTextField.getText());
                 GlobalStateManager.persistence(project);
                 this.logger.info("");
                 this.logger.info("install coders: " + coderRegistry.getRegistryCoders());
@@ -101,13 +96,9 @@ public class InstallAction extends AnAction {
             List<Coder> noRegistryCoders = coderRegistry.getNoRegistryCoders();
             if (CollectionUtils.isNotEmpty(noRegistryCoders)) {
                 String noRegistryCodersLog = noRegistryCoders.stream().map(item -> String.format("source: %s, target: %s", item.kind().source, item.kind().target)).collect(Collectors.joining("\n"));
-                log.accept("以上coder已经存在,不能注册: \n" + noRegistryCodersLog);
+                contextLogger.info("以上coder已经存在,不能注册: \n" + noRegistryCodersLog);
                 logger.info("no install coders: " + noRegistryCoders);
             }
-            if (logBuffer.length() > 0) {
-                outputTextField.setText(logBuffer.toString());
-            }
-
         }
     }
 }

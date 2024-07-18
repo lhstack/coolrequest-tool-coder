@@ -8,9 +8,9 @@ import org.apache.commons.codec.binary.BinaryCodec;
 public class Base64ToBinaryCoder implements Coder {
     @Override
     public String transform(String data) {
-        try{
+        try {
             return BinaryCodec.toAsciiString(Base64.decodeBase64(data));
-        }catch (Throwable e){
+        } catch (Throwable e) {
             return "base64 transform to binary fail,error: " + e.getMessage();
         }
     }

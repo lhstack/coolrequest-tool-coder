@@ -1,8 +1,11 @@
 package dev.coolrequest.tool.state;
 
+import org.apache.commons.lang3.StringUtils;
+
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 
 public class GlobalState {
 
@@ -50,4 +53,7 @@ public class GlobalState {
         return Locale.forLanguageTag(this.i18n);
     }
 
+    public Optional<String> getOptionalStrCache(String key) {
+        return Optional.ofNullable(this.getCache(key)).map(String::valueOf).filter(StringUtils::isNotBlank);
+    }
 }

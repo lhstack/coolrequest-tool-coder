@@ -6,6 +6,7 @@ import java.io.File;
 import java.io.InputStream;
 import java.net.JarURLConnection;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
@@ -124,19 +125,23 @@ public class ClassLoaderUtils {
         return CLASS_LOADER.getResource(name);
     }
 
-    public static InputStream getResourceAsStream(String name){
+    public static InputStream getResourceAsStream(String name) {
         return CLASS_LOADER.getResourceAsStream(name);
     }
 
-    public static byte[] getResourceToBytes(String name){
+    public static byte[] getResourceToBytes(String name) {
         URL resource = getResource(name);
         if (resource != null) {
-            try(InputStream in = resource.openStream()) {
+            try (InputStream in = resource.openStream()) {
                 return IOUtils.toByteArray(in);
-            }catch(Throwable e){
+            } catch (Throwable e) {
                 return new byte[0];
             }
         }
         return new byte[0];
+    }
+
+    public static String getResourceToString(String name) {
+        return new String(getResourceToBytes(name), StandardCharsets.UTF_8);
     }
 }

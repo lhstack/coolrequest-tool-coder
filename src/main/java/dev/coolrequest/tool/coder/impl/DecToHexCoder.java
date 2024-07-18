@@ -14,6 +14,11 @@ public class DecToHexCoder implements Coder {
     }
 
     @Override
+    public int ordered() {
+        return 2;
+    }
+
+    @Override
     public Kind kind() {
         return Kind.of("dec", "hex");
     }
