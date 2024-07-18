@@ -18,10 +18,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
-import java.util.Comparator;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -55,10 +52,13 @@ public class InstallAction extends AnAction {
         String code = this.codeTextField.getText();
         if (StringUtils.isNotBlank(code)) {
             TextAreaLogger contextLogger = new TextAreaLogger("custom.coder", outputTextField);
+            this.dynamicCoders.clear();
+            this.dynamicCoders.addAll(this.baseCoders);
             CoderRegistry coderRegistry = new CoderRegistry(this.dynamicCoders);
             Binding binding = new Binding();
             binding.setVariable("coder", coderRegistry);
             binding.setVariable("log", contextLogger);
+            binding.setVariable("sysLog", this.logger);
             Script script = this.groovyShell.get().parse(code);
             script.setBinding(binding);
             script.run();
