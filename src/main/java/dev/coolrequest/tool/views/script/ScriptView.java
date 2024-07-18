@@ -1,4 +1,4 @@
-package dev.coolrequest.tool.script;
+package dev.coolrequest.tool.views.script;
 
 import com.intellij.openapi.fileTypes.FileTypeManager;
 import com.intellij.openapi.fileTypes.LanguageFileType;
@@ -64,6 +64,7 @@ public class ScriptView extends JPanel {
 
     private void runScript(String script, JBTextArea output) {
         CompilerConfiguration compilerConfiguration = new CompilerConfiguration();
+        Logger scriptLogger = new TextAreaLogger("groovy.script", output);
         try (GroovyClassLoader groovyClassLoader = new GroovyClassLoader(ScriptView.class.getClassLoader(), compilerConfiguration)) {
             GroovyShell groovyShell = new GroovyShell(groovyClassLoader, compilerConfiguration);
             for (Library library : LibraryTablesRegistrar.getInstance().getLibraryTable(project).getLibraries()) {
@@ -83,7 +84,6 @@ public class ScriptView extends JPanel {
                     }
                 }
             }
-            Logger scriptLogger = new TextAreaLogger("groovy.script", output);
             Script groovyScript = groovyShell.parse(script);
             Binding binding = new Binding();
             binding.setVariable("log", scriptLogger);
@@ -93,7 +93,7 @@ public class ScriptView extends JPanel {
             GlobalStateManager.loadState(project).putCache(Constant.SCRIPT_VIEW_CACHE_CODE, script);
             GlobalStateManager.persistence(project);
         } catch (Throwable e) {
-            output.append("groovy脚本执行错误: " + e.getMessage() + "\n");
+            scriptLogger.error("groovy脚本执行错误: " + e.getMessage() + "\n");
         }
     }
 
@@ -113,7 +113,17 @@ public class ScriptView extends JPanel {
                     }
                 }
             });
-            add(createFlowLayoutPanel(button), BorderLayout.NORTH);
+
+            JButton clearLogButton = new JButton(I18n.getString("script.clearLog",project));
+            clearLogButton.addMouseListener(new MouseAdapter() {
+                @Override
+                public void mouseClicked(MouseEvent e) {
+                    if(e.getButton() == MouseEvent.BUTTON1) {
+                        targetTextArea.setText(String.format("注意事项: \n%s\n", "只可使用项目依赖的jar包中的对象以及jdk提供的对象,其他不可使用,如需使用,请手动设置classpath,多个通过,或者空行隔开"));
+                    }
+                }
+            });
+            add(createFlowLayoutPanel(button,clearLogButton), BorderLayout.NORTH);
             add(new JScrollPane(targetTextArea), BorderLayout.CENTER);
         }
 

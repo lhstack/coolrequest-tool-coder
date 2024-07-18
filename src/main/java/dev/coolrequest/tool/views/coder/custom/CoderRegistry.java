@@ -1,7 +1,8 @@
-package dev.coolrequest.tool.coder.custom;
+package dev.coolrequest.tool.views.coder.custom;
 
-import dev.coolrequest.tool.coder.Coder;
-import dev.coolrequest.tool.coder.Kind;
+
+import dev.coolrequest.tool.views.coder.Coder;
+import dev.coolrequest.tool.views.coder.Kind;
 
 import java.util.ArrayList;
 import java.util.List;

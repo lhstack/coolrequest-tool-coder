@@ -1,10 +1,11 @@
-package dev.coolrequest.tool.coder.custom;
+package dev.coolrequest.tool.views.coder.custom;
+
 
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.project.Project;
 import com.intellij.ui.components.JBTextArea;
-import dev.coolrequest.tool.coder.Coder;
+import dev.coolrequest.tool.views.coder.Coder;
 import dev.coolrequest.tool.common.*;
 import dev.coolrequest.tool.components.MultiLanguageTextField;
 import dev.coolrequest.tool.state.GlobalState;

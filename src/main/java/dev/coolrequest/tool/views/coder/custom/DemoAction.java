@@ -1,4 +1,4 @@
-package dev.coolrequest.tool.coder.custom;
+package dev.coolrequest.tool.views.coder.custom;
 
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;

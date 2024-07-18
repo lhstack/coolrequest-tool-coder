@@ -2,9 +2,11 @@ package dev.coolrequest.tool.common;
 
 public interface Logger {
 
-    void info(String msg);
+    void info(Object msg);
 
-    void warn(String msg);
+    void warn(Object msg);
 
-    void error(String msg);
+    void error(Object msg);
+
+
 }

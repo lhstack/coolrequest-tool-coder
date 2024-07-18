@@ -1,4 +1,4 @@
-package dev.coolrequest.tool.coder;
+package dev.coolrequest.tool.views.coder;
 
 public interface Coder {
 

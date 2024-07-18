@@ -1,4 +1,4 @@
-package dev.coolrequest.tool.coder;
+package dev.coolrequest.tool.views.coder;
 
 import com.intellij.openapi.actionSystem.ActionManager;
 import com.intellij.openapi.actionSystem.ActionToolbar;
@@ -16,7 +16,6 @@ import com.intellij.openapi.ui.SimpleToolWindowPanel;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.ui.JBSplitter;
 import com.intellij.ui.components.JBTextArea;
-import dev.coolrequest.tool.coder.custom.*;
 import dev.coolrequest.tool.common.Constant;
 import dev.coolrequest.tool.common.I18n;
 import dev.coolrequest.tool.common.LogContext;
@@ -26,6 +25,7 @@ import dev.coolrequest.tool.components.SimpleDialog;
 import dev.coolrequest.tool.state.GlobalState;
 import dev.coolrequest.tool.state.GlobalStateManager;
 import dev.coolrequest.tool.utils.ClassLoaderUtils;
+import dev.coolrequest.tool.views.coder.custom.*;
 import groovy.lang.Binding;
 import groovy.lang.GroovyShell;
 import groovy.lang.Script;
@@ -65,7 +65,7 @@ public class CoderView extends JPanel implements DocumentListener {
         LogContext logContext = LogContext.getInstance(project);
         this.logger = logContext.getLogger(CoderView.class);
         //加载Coder的实现
-        List<Class<?>> coderClasses = ClassLoaderUtils.scan(clazz -> true, "dev.coolrequest.tool.coder.impl");
+        List<Class<?>> coderClasses = ClassLoaderUtils.scan(clazz -> true, "dev.coolrequest.tool.views.coder.impl");
         this.baseCoders = coderClasses.stream().map(item -> {
                     try {
                         return item.getConstructor().newInstance();
@@ -268,11 +268,12 @@ public class CoderView extends JPanel implements DocumentListener {
                     }
                 }
             });
-            JPanel jPanel = new JPanel(new GridLayout(1, 2));
+            JPanel jPanel = new JPanel(new GridLayout(1, 3));
+            jPanel.add(coderTargetBox);
             jPanel.add(clearButton);
             jPanel.add(customCoder);
             //添加下拉框,左对齐
-            add(createJustifiedPanel(coderTargetBox, jPanel), BorderLayout.NORTH);
+            add(createFlowLayoutPanel(jPanel,FlowLayout.LEFT), BorderLayout.NORTH);
             //内容框
             add(new JScrollPane(rightTextField), BorderLayout.CENTER);
         }

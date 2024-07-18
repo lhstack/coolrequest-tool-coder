@@ -4,7 +4,7 @@ plugins {
     id("org.jetbrains.intellij") version "1.10.1"
 }
 
-group = "dev.coolrequest.tool.coder"
+group = "dev.coolrequest.tool.views.coder"
 version = "1.0-SNAPSHOT"
 
 repositories {

@@ -6,10 +6,11 @@ import com.intellij.ui.components.JBTextArea;
 import com.intellij.ui.tabs.JBTabs;
 import com.intellij.ui.tabs.TabInfo;
 import com.intellij.ui.tabs.impl.JBTabsImpl;
-import dev.coolrequest.tool.coder.CoderView;
 import dev.coolrequest.tool.common.I18n;
 import dev.coolrequest.tool.common.LogContext;
-import dev.coolrequest.tool.script.ScriptView;
+import dev.coolrequest.tool.views.coder.CoderView;
+import dev.coolrequest.tool.views.log.LogView;
+import dev.coolrequest.tool.views.script.ScriptView;
 
 import javax.swing.*;
 import java.awt.*;
@@ -31,7 +32,7 @@ public class MainPanel extends JPanel implements CoolToolPanel {
             decoderTabInfo.setText(I18n.getString("script.title", project));
             jbTabs.addTab(decoderTabInfo);
 
-            TabInfo logTab = new TabInfo(LogContext.getInstance(project).getLogComponent());
+            TabInfo logTab = new TabInfo(new LogView(project));
             logTab.setText(I18n.getString("log.title", project));
             jbTabs.addTab(logTab);
             add(jbTabs.getComponent(), BorderLayout.CENTER);

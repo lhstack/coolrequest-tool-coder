@@ -1,7 +1,7 @@
-package dev.coolrequest.tool.coder.impl;
+package dev.coolrequest.tool.views.coder.impl;
 
-import dev.coolrequest.tool.coder.Coder;
-import dev.coolrequest.tool.coder.Kind;
+import dev.coolrequest.tool.views.coder.Coder;
+import dev.coolrequest.tool.views.coder.Kind;
 import org.apache.commons.codec.digest.DigestUtils;
 
 public class TextToSha512HexCoder implements Coder {

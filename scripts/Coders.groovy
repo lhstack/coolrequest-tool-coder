@@ -1,5 +1,5 @@
-import dev.coolrequest.tool.coder.Coder
-import dev.coolrequest.tool.coder.Kind
+import dev.coolrequest.tool.views.coder.Coder
+import dev.coolrequest.tool.views.coder.Kind
 
 class TextToHexCoder implements Coder{
 

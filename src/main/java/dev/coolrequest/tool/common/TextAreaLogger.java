@@ -22,18 +22,19 @@ public class TextAreaLogger implements Logger {
     }
 
     @Override
-    public void info(String msg) {
+    public void info(Object msg) {
         this.message("INFO", msg);
     }
 
     @Override
-    public void warn(String msg) {
+    public void warn(Object msg) {
         this.message("WARN", msg);
     }
 
-    private void message(String level, String msg) {
+    private void message(String level, Object msg) {
         String text = textArea.getText();
-        String log = String.format("%s [%s] %s #%s - %s", LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS")), Thread.currentThread().getName(), level, loggerName, msg);
+        String message = msg != null ? msg.toString() : "";
+        String log = String.format("%s [%s] %s #%s - %s", LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS")), Thread.currentThread().getName(), level, loggerName, message);
         if (StringUtils.isNotBlank(text)) {
             textArea.append("\n");
             textArea.append(log);
@@ -43,7 +44,7 @@ public class TextAreaLogger implements Logger {
     }
 
     @Override
-    public void error(String msg) {
+    public void error(Object msg) {
         this.message("ERROR", msg);
     }
 }

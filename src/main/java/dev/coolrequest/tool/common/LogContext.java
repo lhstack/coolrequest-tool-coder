@@ -33,6 +33,10 @@ public class LogContext {
         return jbScrollPane;
     }
 
+    public JBTextArea getTextArea() {
+        return textArea;
+    }
+
     public static LogContext getInstance(Project project) {
         return CACHE.computeIfAbsent(project.getBasePath(), k -> new LogContext());
     }
