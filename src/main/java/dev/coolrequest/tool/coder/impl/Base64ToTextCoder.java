@@ -20,4 +20,9 @@ public class Base64ToTextCoder implements Coder {
     public Kind kind() {
         return Kind.of("base64", "text");
     }
+
+    @Override
+    public int ordered() {
+        return 1;
+    }
 }

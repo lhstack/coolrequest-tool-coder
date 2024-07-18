@@ -17,10 +17,12 @@ import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.ui.JBSplitter;
 import com.intellij.ui.components.JBTextArea;
 import dev.coolrequest.tool.coder.custom.*;
+import dev.coolrequest.tool.common.Constant;
 import dev.coolrequest.tool.common.I18n;
 import dev.coolrequest.tool.common.LogContext;
 import dev.coolrequest.tool.common.Logger;
 import dev.coolrequest.tool.components.MultiLanguageTextField;
+import dev.coolrequest.tool.components.SimpleDialog;
 import dev.coolrequest.tool.state.GlobalState;
 import dev.coolrequest.tool.state.GlobalStateManager;
 import dev.coolrequest.tool.utils.ClassLoaderUtils;
@@ -42,7 +44,6 @@ import java.net.URL;
 import java.util.List;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -83,11 +84,10 @@ public class CoderView extends JPanel implements DocumentListener {
         leftSource = new LeftSource();
         rightTarget = new RightTarget(project, createGroovyShell(project));
         GlobalState globalState = GlobalStateManager.loadState(project);
-        Object customCoderScript = globalState.getCache("CustomCoderScript");
+        String customCoderScript = globalState.getOptionalStrCache(Constant.CODER_VIEW_CUSTOM_CODER_SCRIPT_CODE).orElse(null);
         if (customCoderScript != null) {
-            String script = String.valueOf(customCoderScript);
             logger.info("load custom coders");
-            loadCustomCoders(script, createGroovyShell(project));
+            loadCustomCoders(customCoderScript, createGroovyShell(project));
         } else {
             //左侧下拉框内容
             Set<String> source = new HashSet<>();
@@ -130,14 +130,10 @@ public class CoderView extends JPanel implements DocumentListener {
      * @param groovyShell
      */
     private void loadCustomCoders(String customCoderScript, Supplier<GroovyShell> groovyShell) {
-        StringBuilder logBuffer = new StringBuilder();
-        Consumer<Object> log = s -> {
-            logBuffer.append(s).append("\n");
-        };
         CoderRegistry coderRegistry = new CoderRegistry(dynamicCoders);
         Binding binding = new Binding();
         binding.setVariable("coder", coderRegistry);
-        binding.setVariable("log", log);
+        binding.setVariable("log", logger);
         Script script = groovyShell.get().parse(customCoderScript);
         script.setBinding(binding);
         script.run();
@@ -145,10 +141,11 @@ public class CoderView extends JPanel implements DocumentListener {
             dynamicCoders.clear();
             dynamicCoders.addAll(this.baseCoders);
             dynamicCoders.addAll(coderRegistry.getRegistryCoders());
+            dynamicCoders.sort(Comparator.comparing(Coder::ordered));
             //左侧下拉框内容
-            Set<String> source = new HashSet<>();
+            Set<String> source = new LinkedHashSet<>();
             //右侧下拉框内容
-            Set<String> target = new HashSet<>();
+            Set<String> target = new LinkedHashSet<>();
             //左侧第一个下拉框对应的Coder
             Coder coder = dynamicCoders.get(0);
             dynamicCoders.forEach(coderItem -> {
@@ -171,10 +168,7 @@ public class CoderView extends JPanel implements DocumentListener {
         List<Coder> noRegistryCoders = coderRegistry.getNoRegistryCoders();
         if (CollectionUtils.isNotEmpty(noRegistryCoders)) {
             String noRegistryCodersLog = noRegistryCoders.stream().map(item -> String.format("source: %s, target: %s", item.kind().source, item.kind().target)).collect(Collectors.joining("\n"));
-            log.accept("以上coder已经存在,不能注册: \n" + noRegistryCodersLog);
-        }
-        if (logBuffer.length() > 0) {
-            rightTextField.setText(logBuffer.toString());
+            logger.info("以上coder已经存在,不能注册: \n" + noRegistryCodersLog);
         }
     }
 
@@ -287,14 +281,10 @@ public class CoderView extends JPanel implements DocumentListener {
          * 自定义Coder点击事件
          */
         private void customCoderMouseClicked(Supplier<GroovyShell> groovyShell) {
+            SimpleDialog coder = new SimpleDialog(createCustomCoderPanel(groovyShell), I18n.getString("coder.custom.title", project), new Dimension(1000, 600));
             if (state.compareAndSet(false, true)) {
-                JDialog dialog = new JDialog();
-                dialog.setSize(1000, 600);
-                dialog.setAlwaysOnTop(true);
-                dialog.setLocationRelativeTo(null);
-                dialog.getContentPane().add(createCustomCoderPanel(groovyShell));
-                dialog.setVisible(true);
-                dialog.addWindowListener(new WindowAdapter() {
+                coder.setVisible(true);
+                coder.addWindowListener(new WindowAdapter() {
                     @Override
                     public void windowClosing(WindowEvent e) {
                         state.set(false);
@@ -303,12 +293,11 @@ public class CoderView extends JPanel implements DocumentListener {
             }
         }
 
-        private Component createCustomCoderPanel(Supplier<GroovyShell> groovyShell) {
+        private JComponent createCustomCoderPanel(Supplier<GroovyShell> groovyShell) {
             LanguageFileType groovyFileType = (LanguageFileType) FileTypeManager.getInstance().getFileTypeByExtension("groovy");
             MultiLanguageTextField leftFieldText = new MultiLanguageTextField(groovyFileType, project);
-            Object customCoderScript = GlobalStateManager.loadState(project).getCache("CustomCoderScript");
-            if (customCoderScript != null) {
-                String script = String.valueOf(customCoderScript);
+            String script = GlobalStateManager.loadState(project).getOptionalStrCache(Constant.CODER_VIEW_CUSTOM_CODER_SCRIPT_CODE).orElse(null);
+            if (script != null) {
                 if (StringUtils.isNotBlank(script)) {
                     leftFieldText.setText(script);
                 }

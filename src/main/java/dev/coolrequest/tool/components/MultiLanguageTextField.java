@@ -41,6 +41,7 @@ public class MultiLanguageTextField extends LanguageTextField {
         EditorSettings settings = editor.getSettings();
         settings.setLineNumbersShown(true);
         settings.setRightMarginShown(true);
+        settings.setAutoCodeFoldingEnabled(false);
         return editor;
     }
 }
