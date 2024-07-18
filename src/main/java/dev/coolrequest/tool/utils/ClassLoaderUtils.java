@@ -1,6 +1,9 @@
 package dev.coolrequest.tool.utils;
 
+import org.apache.commons.io.IOUtils;
+
 import java.io.File;
+import java.io.InputStream;
 import java.net.JarURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
@@ -16,19 +19,20 @@ public class ClassLoaderUtils {
 
     private static final ClassLoader CLASS_LOADER = ClassLoaderUtils.class.getClassLoader();
 
-    public static List<Class<?>> scan(Predicate<Class<?>> clazzPredicate, String... basePackages) {
+
+    public static List<Class<?>> scan(ClassLoader classLoader, Predicate<Class<?>> clazzPredicate, String... basePackages) {
         return Stream.of(basePackages).flatMap(basePackage -> {
             String packageDir = basePackage.replaceAll("\\.", "/");
             List<Class<?>> classes = new ArrayList<>();
             try {
-                Enumeration<URL> resources = CLASS_LOADER.getResources(packageDir);
+                Enumeration<URL> resources = classLoader.getResources(packageDir);
                 while (resources.hasMoreElements()) {
                     URL url = resources.nextElement();
                     String protocol = url.getProtocol();
                     if ("file".equals(protocol)) {
-                        resolveFile(packageDir, new File(url.getFile()), clazzPredicate, classes);
+                        resolveFile(classLoader, packageDir, new File(url.getFile()), clazzPredicate, classes, ".class");
                     } else if ("jar".equals(protocol)) {
-                        resolveJar(packageDir,clazzPredicate, (JarURLConnection) url.openConnection(), classes);
+                        resolveJar(classLoader, packageDir, clazzPredicate, (JarURLConnection) url.openConnection(), classes, ".class");
                     }
                 }
             } catch (Throwable ignore) {
@@ -38,16 +42,22 @@ public class ClassLoaderUtils {
         }).collect(Collectors.toList());
     }
 
-    private static void resolveFile(String packageDir, File file, Predicate<Class<?>> clazzPredicate, List<Class<?>> classes) {
+    public static List<Class<?>> scan(Predicate<Class<?>> clazzPredicate, String... basePackages) {
+        return scan(CLASS_LOADER, clazzPredicate, basePackages);
+    }
+
+    private static void resolveFile(ClassLoader classLoader, String packageDir, File file, Predicate<Class<?>> clazzPredicate, List<Class<?>> classes, String fileSuffixName) {
+
         if (file.exists() && file.isFile()) {
+
             String name = file.getAbsolutePath();
-            if (name.endsWith(".class")) {
+            if (name.endsWith(fileSuffixName)) {
                 String className = name.substring(0, name.length() - 6).replaceAll("\\\\", "/");
                 int index = className.indexOf(packageDir);
                 if (index != -1) {
                     className = className.substring(index).replaceAll("/", ".");
                     try {
-                        Class<?> clazz = CLASS_LOADER.loadClass(className);
+                        Class<?> clazz = classLoader.loadClass(className);
                         if (clazzPredicate.test(clazz)) {
                             classes.add(clazz);
                         }
@@ -62,13 +72,13 @@ public class ClassLoaderUtils {
                 for (File f : files) {
                     if (f.isFile()) {
                         String name = f.getAbsolutePath();
-                        if (name.endsWith(".class")) {
+                        if (name.endsWith(fileSuffixName)) {
                             String className = name.substring(0, name.length() - 6).replaceAll("\\\\", "/");
                             int index = className.indexOf(packageDir);
                             if (index != -1) {
                                 className = className.substring(index).replaceAll("/", ".");
                                 try {
-                                    Class<?> clazz = CLASS_LOADER.loadClass(className);
+                                    Class<?> clazz = classLoader.loadClass(className);
                                     if (clazzPredicate.test(clazz)) {
                                         classes.add(clazz);
                                     }
@@ -78,7 +88,7 @@ public class ClassLoaderUtils {
                             }
                         }
                     } else {
-                        resolveFile(packageDir, f, clazzPredicate, classes);
+                        resolveFile(classLoader, packageDir, f, clazzPredicate, classes, fileSuffixName);
                     }
                 }
             }
@@ -86,22 +96,20 @@ public class ClassLoaderUtils {
     }
 
     public static void main(String[] args) {
-        List<Class<?>> scan = ClassLoaderUtils.scan(clazz -> {
-            return true;
-        }, "dev.coolrequest.tool.coder.encoder");
-        System.out.println(scan);
+        URL resource = getResource("icons/demo_action.svg");
+        System.out.println(resource);
     }
 
-    private static void resolveJar(String packageDir, Predicate<Class<?>> clazzPredicate, JarURLConnection connection, List<Class<?>> classes) throws Throwable {
+    private static void resolveJar(ClassLoader classLoader, String packageDir, Predicate<Class<?>> clazzPredicate, JarURLConnection connection, List<Class<?>> classes, String fileSuffixName) throws Throwable {
         JarFile jarFile = connection.getJarFile();
         Enumeration<JarEntry> entries = jarFile.entries();
         while (entries.hasMoreElements()) {
             JarEntry entry = entries.nextElement();
             String name = entry.getName();
-            if (name.endsWith(".class") && name.contains(packageDir)) {
+            if (name.endsWith(fileSuffixName) && name.contains(packageDir)) {
                 String className = name.substring(0, name.length() - 6).replaceAll("/", ".");
                 try {
-                    Class<?> clazz = CLASS_LOADER.loadClass(className);
+                    Class<?> clazz = classLoader.loadClass(className);
                     if (clazzPredicate.test(clazz)) {
                         classes.add(clazz);
                     }
@@ -110,5 +118,25 @@ public class ClassLoaderUtils {
                 }
             }
         }
+    }
+
+    public static URL getResource(String name) {
+        return CLASS_LOADER.getResource(name);
+    }
+
+    public static InputStream getResourceAsStream(String name){
+        return CLASS_LOADER.getResourceAsStream(name);
+    }
+
+    public static byte[] getResourceToBytes(String name){
+        URL resource = getResource(name);
+        if (resource != null) {
+            try(InputStream in = resource.openStream()) {
+                return IOUtils.toByteArray(in);
+            }catch(Throwable e){
+                return new byte[0];
+            }
+        }
+        return new byte[0];
     }
 }
