@@ -23,7 +23,7 @@ public class CompileAction extends AnAction {
     private final Logger logger;
 
     public CompileAction(MultiLanguageTextField codeTextField, JBTextArea outputTextArea, Supplier<GroovyShell> groovyShell, Project project) {
-        super(() -> I18n.getString("coder.custom.compile", project), Icons.COMPILE_ACTION);
+        super(() -> I18n.getString("coder.custom.compile", project), Icons.COMPILE);
         this.codeTextField = codeTextField;
         this.outputTextArea = outputTextArea;
         this.groovyShell = groovyShell;
@@ -34,11 +34,9 @@ public class CompileAction extends AnAction {
     public void actionPerformed(@NotNull AnActionEvent anActionEvent) {
         if (StringUtils.isNotBlank(this.codeTextField.getText())) {
             try {
-                this.outputTextArea.setText("开始编译代码...");
                 groovyShell.get().parse(this.codeTextField.getText());
                 this.outputTextArea.setText(this.outputTextArea.getText() + "\n" + "编译代码通过");
             } catch (Throwable e) {
-                logger.error("自定义Coder编译失败:" + e.getMessage() );
                 this.outputTextArea.setText(String.format("编译失败,error: %s", e.getMessage()));
             }
         }

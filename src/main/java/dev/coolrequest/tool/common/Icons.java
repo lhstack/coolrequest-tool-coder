@@ -7,8 +7,9 @@ import javax.swing.*;
 
 public interface Icons {
 
-    Icon DEMO_ACTION = IconLoader.findIcon(ClassLoaderUtils.getResource("icons/demo_action.svg"));
-    Icon COMPILE_ACTION = IconLoader.findIcon(ClassLoaderUtils.getResource("icons/compile_action.svg"));
-    Icon USING_PROJECT_LIBRARY_ACTION = IconLoader.findIcon(ClassLoaderUtils.getResource("icons/using_project_library_action.svg"));
-    Icon INSTALL_ACTION = IconLoader.findIcon(ClassLoaderUtils.getResource("icons/install_action.svg"));
+    Icon DEMO = IconLoader.findIcon(ClassLoaderUtils.getResource("icons/demo.svg"));
+    Icon COMPILE = IconLoader.findIcon(ClassLoaderUtils.getResource("icons/compile.svg"));
+    Icon LIBRARY = IconLoader.findIcon(ClassLoaderUtils.getResource("icons/library.svg"));
+    Icon INSTALL = IconLoader.findIcon(ClassLoaderUtils.getResource("icons/install.svg"));
+    Icon RUN = IconLoader.findIcon(ClassLoaderUtils.getResource("icons/run.svg"));
 }

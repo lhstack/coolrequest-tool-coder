@@ -12,6 +12,10 @@ public interface Constant {
      */
     String SCRIPT_VIEW_CACHE_CODE = "ScriptView:Code";
 
+    /**
+     * 缓存ScriptView视图中使用用户项目依赖状态
+     */
+    String SCRIPT_VIEW_CACHE_USING_PROJECT_LIBRARY = "ScriptView:UsingProjectLibrary";
 
     /**
      * 缓存自定义coder代码内容

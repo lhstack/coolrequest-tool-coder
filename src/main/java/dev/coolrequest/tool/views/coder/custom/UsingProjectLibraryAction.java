@@ -18,7 +18,7 @@ public class UsingProjectLibraryAction extends ToggleAction {
     private final Project project;
 
     public UsingProjectLibraryAction(Project project) {
-        super(() -> I18n.getString("coder.custom.usingProjectLibrary", project), Icons.USING_PROJECT_LIBRARY_ACTION);
+        super(() -> I18n.getString("coder.custom.usingProjectLibrary", project), Icons.LIBRARY);
         this.project = project;
     }
 

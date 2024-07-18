@@ -6,21 +6,21 @@ import org.apache.commons.io.FileUtils;
 
 import java.io.File;
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.Map;
 
 public class GlobalStateManager {
 
-    private static GlobalState globalState;
+    private static Map<String, GlobalState> globalStateCache = new HashMap<>();
 
     /**
      * 持久化state
      */
     public static synchronized void persistence(Project project) {
-        if (globalState == null) {
-            globalState = new GlobalState();
-        }
+        GlobalState globalState = globalStateCache.computeIfAbsent(project.getLocationHash(), key -> new GlobalState());
         try {
-            File parent = new File(project.getPresentableUrl(),".coolrequest");
-            if(!parent.exists()){
+            File parent = new File(project.getPresentableUrl(), ".coolrequest");
+            if (!parent.exists()) {
                 parent.mkdirs();
             }
             File file = new File(parent, ".coder");
@@ -41,23 +41,23 @@ public class GlobalStateManager {
      * @return
      */
     public static synchronized GlobalState loadState(Project project) {
-        File parent = new File(project.getPresentableUrl(),".coolrequest");
-        if(!parent.exists()){
-            parent.mkdirs();
-        }
-        File file = new File(parent, ".coder");
-        if (file.exists()) {
-            try {
-                byte[] bytes = FileUtils.readFileToByteArray(file);
-                Gson gson = new Gson();
-                globalState = gson.fromJson(new String(bytes, StandardCharsets.UTF_8), GlobalState.class);
-                return globalState;
-            } catch (Throwable e) {
-                e.printStackTrace();
+        return globalStateCache.computeIfAbsent(project.getLocationHash(), key -> {
+            File parent = new File(project.getPresentableUrl(), ".coolrequest");
+            if (!parent.exists()) {
+                parent.mkdirs();
             }
-        }
-        globalState = new GlobalState();
-        return globalState;
+            File file = new File(parent, ".coder");
+            if (file.exists()) {
+                try {
+                    byte[] bytes = FileUtils.readFileToByteArray(file);
+                    Gson gson = new Gson();
+                    return gson.fromJson(new String(bytes, StandardCharsets.UTF_8), GlobalState.class);
+                } catch (Throwable e) {
+                    e.printStackTrace();
+                }
+            }
+            return new GlobalState();
+        });
     }
 
 }

@@ -15,6 +15,7 @@ import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.ui.SimpleToolWindowPanel;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.ui.JBSplitter;
+import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.components.JBTextArea;
 import dev.coolrequest.tool.common.Constant;
 import dev.coolrequest.tool.common.I18n;
@@ -43,6 +44,8 @@ import java.io.File;
 import java.net.URL;
 import java.util.List;
 import java.util.*;
+import java.util.concurrent.FutureTask;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -136,7 +139,15 @@ public class CoderView extends JPanel implements DocumentListener {
         binding.setVariable("log", logger);
         Script script = groovyShell.get().parse(customCoderScript);
         script.setBinding(binding);
-        script.run();
+        FutureTask<Object> futureTask = new FutureTask<>(script::run);
+        try {
+            Thread thread = new Thread(futureTask);
+            thread.start();
+            futureTask.get(10, TimeUnit.SECONDS);
+        } catch (Throwable e) {
+            futureTask.cancel(true);
+            logger.error("安装自定义coder失败,错误信息: " + e.getMessage());
+        }
         if (CollectionUtils.isNotEmpty(coderRegistry.getRegistryCoders())) {
             dynamicCoders.clear();
             dynamicCoders.addAll(this.baseCoders);
@@ -273,7 +284,7 @@ public class CoderView extends JPanel implements DocumentListener {
             jPanel.add(clearButton);
             jPanel.add(customCoder);
             //添加下拉框,左对齐
-            add(createFlowLayoutPanel(jPanel,FlowLayout.LEFT), BorderLayout.NORTH);
+            add(createFlowLayoutPanel(jPanel, FlowLayout.LEFT), BorderLayout.NORTH);
             //内容框
             add(new JScrollPane(rightTextField), BorderLayout.CENTER);
         }
@@ -312,12 +323,13 @@ public class CoderView extends JPanel implements DocumentListener {
             defaultActionGroup.add(new CompileAction(leftFieldText, rightFieldText, groovyShell, project));
             defaultActionGroup.add(new InstallAction(leftFieldText, rightFieldText, groovyShell, coderSourceBox, coderTargetBox, baseCoders, dynamicCoders, project));
             defaultActionGroup.add(new UsingProjectLibraryAction(project));
+            defaultActionGroup.add(new RunAction(leftFieldText, rightFieldText, groovyShell, project));
             SimpleToolWindowPanel panel = new SimpleToolWindowPanel(true, false);
             ActionToolbar actionToolbar = ActionManager.getInstance().createActionToolbar("custom.coder", defaultActionGroup, false);
             panel.setToolbar(actionToolbar.getComponent());
             JBSplitter splitter = new JBSplitter();
             splitter.setFirstComponent(leftFieldText);
-            splitter.setSecondComponent(rightFieldText);
+            splitter.setSecondComponent(new JBScrollPane(rightFieldText));
             //设置内容
             panel.setContent(splitter);
             return panel;

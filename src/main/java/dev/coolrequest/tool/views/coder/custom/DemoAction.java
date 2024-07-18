@@ -20,7 +20,7 @@ public class DemoAction extends AnAction {
     private final MultiLanguageTextField codeFieldText;
 
     public DemoAction(MultiLanguageTextField codeFieldText, JBTextArea rightFieldText, Project project) {
-        super(() -> I18n.getString("coder.custom.demo",project), Icons.DEMO_ACTION);
+        super(() -> I18n.getString("coder.custom.demo",project), Icons.DEMO);
         this.codeFieldText = codeFieldText;
     }
 

@@ -56,4 +56,12 @@ public class GlobalState {
     public Optional<String> getOptionalStrCache(String key) {
         return Optional.ofNullable(this.getCache(key)).map(String::valueOf).filter(StringUtils::isNotBlank);
     }
+
+    public boolean getBooleanCache(String name) {
+        Object o = cache.get(name);
+        if (o == null) {
+            return false;
+        }
+        return Boolean.parseBoolean(String.valueOf(o));
+    }
 }

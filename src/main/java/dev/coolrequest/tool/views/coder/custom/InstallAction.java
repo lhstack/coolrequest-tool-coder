@@ -19,6 +19,8 @@ import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import java.util.*;
+import java.util.concurrent.FutureTask;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -35,7 +37,7 @@ public class InstallAction extends AnAction {
     private final Logger logger;
 
     public InstallAction(MultiLanguageTextField codeTextField, JBTextArea outputTextField, Supplier<GroovyShell> groovyShell, JComboBox<String> coderSourceBox, JComboBox<String> coderTargetBox, List<Coder> baseCoders, List<Coder> dynamicCoders, Project project) {
-        super(() -> I18n.getString("coder.custom.install", project), Icons.INSTALL_ACTION);
+        super(() -> I18n.getString("coder.custom.install", project), Icons.INSTALL);
         this.codeTextField = codeTextField;
         this.outputTextField = outputTextField;
         this.groovyShell = groovyShell;
@@ -61,7 +63,15 @@ public class InstallAction extends AnAction {
             binding.setVariable("sysLog", this.logger);
             Script script = this.groovyShell.get().parse(code);
             script.setBinding(binding);
-            script.run();
+            FutureTask<Object> futureTask = new FutureTask<>(script::run);
+            try {
+                Thread thread = new Thread(futureTask);
+                thread.start();
+                futureTask.get(10, TimeUnit.SECONDS);
+            } catch (Throwable e) {
+                futureTask.cancel(true);
+                contextLogger.error("安装自定义coder失败,错误信息: " + e);
+            }
             if (CollectionUtils.isNotEmpty(coderRegistry.getRegistryCoders())) {
                 dynamicCoders.clear();
                 dynamicCoders.addAll(this.baseCoders);
