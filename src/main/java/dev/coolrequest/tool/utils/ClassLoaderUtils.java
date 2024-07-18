@@ -124,6 +124,10 @@ public class ClassLoaderUtils {
         return CLASS_LOADER.getResource(name);
     }
 
+    public static InputStream getResourceAsStream(String name){
+        return CLASS_LOADER.getResourceAsStream(name);
+    }
+
     public static byte[] getResourceToBytes(String name){
         URL resource = getResource(name);
         if (resource != null) {

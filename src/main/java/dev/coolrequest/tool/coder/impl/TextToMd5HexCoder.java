@@ -1,7 +1,7 @@
 package dev.coolrequest.tool.coder.impl;
 
-import dev.coolrequest.tool.coder.Kind;
 import dev.coolrequest.tool.coder.Coder;
+import dev.coolrequest.tool.coder.Kind;
 import org.apache.commons.codec.digest.DigestUtils;
 
 public class TextToMd5HexCoder implements Coder {
@@ -12,6 +12,6 @@ public class TextToMd5HexCoder implements Coder {
 
     @Override
     public Kind kind() {
-        return Kind.of("text", "md5Hex");
+        return Kind.of("text", "md5");
     }
 }

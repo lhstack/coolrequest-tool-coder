@@ -2,38 +2,45 @@ package dev.coolrequest.tool.coder.custom;
 
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
+import com.intellij.openapi.project.Project;
 import com.intellij.ui.components.JBTextArea;
 import dev.coolrequest.tool.coder.Coder;
-import dev.coolrequest.tool.coder.Kind;
 import dev.coolrequest.tool.common.I18n;
 import dev.coolrequest.tool.common.Icons;
+import dev.coolrequest.tool.common.LogContext;
+import dev.coolrequest.tool.common.Logger;
 import dev.coolrequest.tool.components.MultiLanguageTextField;
+import dev.coolrequest.tool.state.GlobalState;
+import dev.coolrequest.tool.state.GlobalStateManager;
 import groovy.lang.Binding;
 import groovy.lang.GroovyShell;
 import groovy.lang.Script;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
-import java.util.function.Function;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 public class InstallAction extends AnAction {
+
     private final MultiLanguageTextField codeTextField;
     private final JBTextArea outputTextField;
-    private final GroovyShell groovyShell;
+    private final Supplier<GroovyShell> groovyShell;
     private final JComboBox<String> coderSourceBox;
     private final JComboBox<String> coderTargetBox;
     private final List<Coder> baseCoders;
     private final List<Coder> dynamicCoders;
+    private final Project project;
+    private final Logger logger;
 
-    public InstallAction(MultiLanguageTextField codeTextField, JBTextArea outputTextField, GroovyShell groovyShell, JComboBox<String> coderSourceBox, JComboBox<String> coderTargetBox, List<Coder> baseCoders, List<Coder> dynamicCoders) {
-        super(() -> I18n.getString("coder.custom.install"), Icons.INSTALL_ACTION);
+    public InstallAction(MultiLanguageTextField codeTextField, JBTextArea outputTextField, Supplier<GroovyShell> groovyShell, JComboBox<String> coderSourceBox, JComboBox<String> coderTargetBox, List<Coder> baseCoders, List<Coder> dynamicCoders, Project project) {
+        super(() -> I18n.getString("coder.custom.install", project), Icons.INSTALL_ACTION);
         this.codeTextField = codeTextField;
         this.outputTextField = outputTextField;
         this.groovyShell = groovyShell;
@@ -41,55 +48,29 @@ public class InstallAction extends AnAction {
         this.coderTargetBox = coderTargetBox;
         this.baseCoders = baseCoders;
         this.dynamicCoders = dynamicCoders;
+        this.project = project;
+        this.logger = LogContext.getInstance(project).getLogger(InstallAction.class);
     }
 
     @Override
     public void actionPerformed(@NotNull AnActionEvent anActionEvent) {
         String code = this.codeTextField.getText();
         if (StringUtils.isNotBlank(code)) {
-            //是否发生修改
-            AtomicBoolean hasChanged = new AtomicBoolean(false);
-            //临时添加的coders
-            List<Coder> tempCoders = new ArrayList<>();
-
             StringBuilder logBuffer = new StringBuilder();
             Consumer<Object> log = s -> {
                 logBuffer.append(s).append("\n");
             };
-            class CoderRegistry {
-                public void registry(String source, String target, Function<String, String> mapper) {
-                    Coder coder = new Coder() {
-                        @Override
-                        public String transform(String data) {
-                            return mapper.apply(data);
-                        }
-
-                        @Override
-                        public Kind kind() {
-                            return Kind.of(source, target);
-                        }
-                    };
-                    for (Coder dynamicCoder : dynamicCoders) {
-                        if (!dynamicCoder.kind().is(coder.kind().source, coder.kind().target)) {
-                            tempCoders.add(coder);
-                            hasChanged.set(true);
-                        } else {
-                            log.accept(String.format("存在重名的coder,请修改coder类型重新注册: source=%s,target=%s", dynamicCoder.kind().source, dynamicCoder.kind().target));
-                        }
-                    }
-                }
-            }
-            CoderRegistry coderRegistry = new CoderRegistry();
+            CoderRegistry coderRegistry = new CoderRegistry(this.dynamicCoders);
             Binding binding = new Binding();
             binding.setVariable("coder", coderRegistry);
             binding.setVariable("log", log);
-            Script script = this.groovyShell.parse(code);
+            Script script = this.groovyShell.get().parse(code);
             script.setBinding(binding);
             script.run();
-            if (hasChanged.get()) {
+            if (CollectionUtils.isNotEmpty(coderRegistry.getRegistryCoders())) {
                 dynamicCoders.clear();
                 dynamicCoders.addAll(this.baseCoders);
-                dynamicCoders.addAll(tempCoders);
+                dynamicCoders.addAll(coderRegistry.getRegistryCoders());
                 //左侧下拉框内容
                 Set<String> source = new HashSet<>();
                 //右侧下拉框内容
@@ -109,9 +90,19 @@ public class InstallAction extends AnAction {
                 //添加到box中
                 source.forEach(coderSourceBox::addItem);
                 target.forEach(coderTargetBox::addItem);
-
-            } else {
-                log.accept("所有coder都已经重复了,不需要重新注册");
+                GlobalState globalState = GlobalStateManager.loadState(project);
+                globalState.putCache("CustomCoderScript", codeTextField.getText());
+                GlobalStateManager.persistence(project);
+                this.logger.info("");
+                this.logger.info("install coders: " + coderRegistry.getRegistryCoders());
+                this.logger.info("coder sources: " + source);
+                this.logger.info("target sources: " + target);
+            }
+            List<Coder> noRegistryCoders = coderRegistry.getNoRegistryCoders();
+            if (CollectionUtils.isNotEmpty(noRegistryCoders)) {
+                String noRegistryCodersLog = noRegistryCoders.stream().map(item -> String.format("source: %s, target: %s", item.kind().source, item.kind().target)).collect(Collectors.joining("\n"));
+                log.accept("以上coder已经存在,不能注册: \n" + noRegistryCodersLog);
+                logger.info("no install coders: " + noRegistryCoders);
             }
             if (logBuffer.length() > 0) {
                 outputTextField.setText(logBuffer.toString());

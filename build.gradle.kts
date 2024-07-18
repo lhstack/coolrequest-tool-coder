@@ -15,7 +15,7 @@ repositories {
 intellij {
     version.set("2022.1")
     type.set("IC") // Target IDE Platform
-    plugins.set(listOf("com.intellij.java","org.intellij.groovy"))
+    plugins.set(listOf("com.intellij.java", "org.intellij.groovy"))
 }
 
 dependencies {
@@ -31,7 +31,15 @@ tasks {
         options.encoding = "UTF-8"
     }
 
-    withType<JavaExec>{
+//    withType<Jar> {
+//        from(configurations.runtimeClasspath.get().filter {
+//            it.name.contains("log4j")
+//        }.map {
+//            if (it.isDirectory) it else zipTree(it)
+//        })
+//    }
+
+    withType<JavaExec> {
         jvmArgs("-Dfile.encoding=UTF-8")
     }
     withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {

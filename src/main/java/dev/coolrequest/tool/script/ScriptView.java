@@ -47,7 +47,7 @@ public class ScriptView extends JPanel {
             } else {
                 runScript(text, textArea);
             }
-        });
+        }, project);
         JBSplitter jbSplitter = new JBSplitter();
         jbSplitter.setSecondComponent(right);
         jbSplitter.setFirstComponent(left);
@@ -89,10 +89,10 @@ public class ScriptView extends JPanel {
     private class Right extends JPanel {
         private final JBTextArea targetTextArea = new JBTextArea();
 
-        public Right(Consumer<JBTextArea> consumer) {
+        public Right(Consumer<JBTextArea> consumer, Project project) {
             super(new BorderLayout());
             targetTextArea.setEditable(false);
-            JButton button = new JButton(I18n.getString("script.run"));
+            JButton button = new JButton(I18n.getString("script.run", project));
             button.addMouseListener(new MouseAdapter() {
                 @Override
                 public void mouseClicked(MouseEvent e) {
@@ -114,13 +114,13 @@ public class ScriptView extends JPanel {
             super(new BorderLayout());
             LanguageFileType groovyFileType = (LanguageFileType) FileTypeManager.getInstance().getFileTypeByExtension("groovy");
             languageTextField = new MultiLanguageTextField(groovyFileType, project);
-            JButton button = new JButton("添加classPath");
+            JButton button = new JButton(I18n.getString("script.addclasspath.title", project));
             button.addMouseListener(new MouseAdapter() {
                 @Override
                 public void mouseClicked(MouseEvent e) {
                     if (e.getButton() == MouseEvent.BUTTON1) {
                         JDialog dialog = new JDialog();
-                        dialog.setTitle("添加ClassPath");
+                        dialog.setTitle(I18n.getString("script.addclasspath.title", project));
                         dialog.setLayout(new BorderLayout());
                         dialog.setSize(400, 400);
                         dialog.setLocationRelativeTo(null);
