@@ -18,6 +18,7 @@ import dev.coolrequest.tool.components.SimpleDialog;
 import dev.coolrequest.tool.state.GlobalState;
 import dev.coolrequest.tool.state.GlobalStateManager;
 import dev.coolrequest.tool.utils.ClassLoaderUtils;
+import dev.coolrequest.tool.views.coder.custom.DemoAction;
 import groovy.lang.Binding;
 import groovy.lang.GroovyClassLoader;
 import groovy.lang.GroovyShell;
@@ -216,7 +217,7 @@ public class ScriptView extends JPanel {
                     }
                 }
             });
-            ActionToolbar actionToolbar = ActionManager.getInstance().createActionToolbar("ScriptView", defaultActionGroup, false);
+            ActionToolbar actionToolbar = ActionManager.getInstance().createActionToolbar("ScriptView", defaultActionGroup, true);
             add(createFlowLayoutPanel(button, templateCodeButton, actionToolbar.getComponent()), BorderLayout.NORTH);
             add(languageTextField, BorderLayout.CENTER);
         }
