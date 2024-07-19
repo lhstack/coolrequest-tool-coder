@@ -84,6 +84,7 @@ public class CoderView extends JPanel implements DocumentListener {
         this.leftTextField = new MultiLanguageTextField(PlainTextFileType.INSTANCE, project);
         this.leftTextField.getDocument().addDocumentListener(this);
         this.rightTextField = new MultiLanguageTextField(PlainTextFileType.INSTANCE, project);
+        this.rightTextField.setEnabled(false);
         leftSource = new LeftSource();
         rightTarget = new RightTarget(project, createGroovyShell(project));
         GlobalState globalState = GlobalStateManager.loadState(project);
@@ -93,9 +94,10 @@ public class CoderView extends JPanel implements DocumentListener {
             loadCustomCoders(customCoderScript, createGroovyShell(project));
         } else {
             //左侧下拉框内容
-            Set<String> source = new HashSet<>();
+            Set<String> source = new LinkedHashSet<>();
             //右侧下拉框内容
             Set<String> target = new HashSet<>();
+            dynamicCoders.sort(Comparator.comparing(Coder::ordered));
             //左侧第一个下拉框对应的Coder
             Coder coder = dynamicCoders.get(0);
             dynamicCoders.forEach(coderItem -> {

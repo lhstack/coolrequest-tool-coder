@@ -92,10 +92,8 @@ public class InstallAction extends AnAction {
                     }
                 });
                 coderSourceBox.removeAllItems();
-                coderTargetBox.removeAllItems();
                 //添加到box中
                 source.forEach(coderSourceBox::addItem);
-                target.forEach(coderTargetBox::addItem);
                 GlobalState globalState = GlobalStateManager.loadState(project);
                 globalState.putCache(Constant.CODER_VIEW_CUSTOM_CODER_SCRIPT_CODE, codeTextField.getText());
                 GlobalStateManager.persistence(project);
