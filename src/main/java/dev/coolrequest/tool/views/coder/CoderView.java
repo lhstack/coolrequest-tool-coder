@@ -136,6 +136,7 @@ public class CoderView extends JPanel implements DocumentListener {
         CoderRegistry coderRegistry = new CoderRegistry(dynamicCoders);
         Binding binding = new Binding();
         binding.setVariable("coder", coderRegistry);
+        binding.setVariable("sysLog", logger);
         binding.setVariable("log", logger);
         Script script = groovyShell.get().parse(customCoderScript);
         script.setBinding(binding);
