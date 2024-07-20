@@ -5,11 +5,11 @@ import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.project.Project;
 import com.intellij.ui.components.JBTextArea;
-import dev.coolrequest.tool.views.coder.Coder;
 import dev.coolrequest.tool.common.*;
 import dev.coolrequest.tool.components.MultiLanguageTextField;
 import dev.coolrequest.tool.state.GlobalState;
 import dev.coolrequest.tool.state.GlobalStateManager;
+import dev.coolrequest.tool.views.coder.Coder;
 import groovy.lang.Binding;
 import groovy.lang.GroovyShell;
 import groovy.lang.Script;
@@ -18,7 +18,10 @@ import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
-import java.util.*;
+import java.util.Comparator;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
@@ -30,19 +33,17 @@ public class InstallAction extends AnAction {
     private final JBTextArea outputTextField;
     private final Supplier<GroovyShell> groovyShell;
     private final JComboBox<String> coderSourceBox;
-    private final JComboBox<String> coderTargetBox;
     private final List<Coder> baseCoders;
     private final List<Coder> dynamicCoders;
     private final Project project;
     private final Logger logger;
 
-    public InstallAction(MultiLanguageTextField codeTextField, JBTextArea outputTextField, Supplier<GroovyShell> groovyShell, JComboBox<String> coderSourceBox, JComboBox<String> coderTargetBox, List<Coder> baseCoders, List<Coder> dynamicCoders, Project project) {
+    public InstallAction(MultiLanguageTextField codeTextField, JBTextArea outputTextField, Supplier<GroovyShell> groovyShell, JComboBox<String> coderSourceBox, List<Coder> baseCoders, List<Coder> dynamicCoders, Project project) {
         super(() -> I18n.getString("coder.custom.install", project), Icons.INSTALL);
         this.codeTextField = codeTextField;
         this.outputTextField = outputTextField;
         this.groovyShell = groovyShell;
         this.coderSourceBox = coderSourceBox;
-        this.coderTargetBox = coderTargetBox;
         this.baseCoders = baseCoders;
         this.dynamicCoders = dynamicCoders;
         this.project = project;
@@ -80,17 +81,9 @@ public class InstallAction extends AnAction {
                 dynamicCoders.sort(Comparator.comparing(Coder::ordered));
                 //左侧下拉框内容
                 Set<String> source = new LinkedHashSet<>();
-                //右侧下拉框内容
-                Set<String> target = new LinkedHashSet<>();
-                //左侧第一个下拉框对应的Coder
-                Coder coder = dynamicCoders.get(0);
                 dynamicCoders.forEach(coderItem -> {
                     //填充左侧下拉框内容
                     source.add(coderItem.kind().source);
-                    //填充右侧下拉框内容,前提是左侧第一个下拉框支持的
-                    if (StringUtils.equals(coderItem.kind().source, coder.kind().source)) {
-                        target.add(coderItem.kind().target);
-                    }
                 });
                 coderSourceBox.removeAllItems();
                 //添加到box中
@@ -98,16 +91,14 @@ public class InstallAction extends AnAction {
                 GlobalState globalState = GlobalStateManager.loadState(project);
                 globalState.putCache(CacheConstant.CODER_VIEW_CUSTOM_CODER_SCRIPT_CODE, codeTextField.getText());
                 GlobalStateManager.persistence(project);
-                this.logger.info("");
-                this.logger.info("install coders: " + coderRegistry.getRegistryCoders());
-                this.logger.info("coder sources: " + source);
-                this.logger.info("target sources: " + target);
+                contextLogger.info("");
+                contextLogger.info("安装成功的 coders: " + coderRegistry.getRegistryCoders());
             }
             List<Coder> noRegistryCoders = coderRegistry.getNoRegistryCoders();
             if (CollectionUtils.isNotEmpty(noRegistryCoders)) {
                 String noRegistryCodersLog = noRegistryCoders.stream().map(item -> String.format("source: %s, target: %s", item.kind().source, item.kind().target)).collect(Collectors.joining("\n"));
                 contextLogger.info("以上coder已经存在,不能注册: \n" + noRegistryCodersLog);
-                logger.info("no install coders: " + noRegistryCoders);
+                contextLogger.info("未安装成功的 coders: " + noRegistryCoders);
             }
         }
     }

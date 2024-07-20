@@ -316,7 +316,7 @@ public class CoderView extends JPanel implements DocumentListener {
             defaultActionGroup.add(new EnvAction(project));
             defaultActionGroup.add(new DemoAction(leftFieldText, rightFieldText, project));
             defaultActionGroup.add(new CompileAction(leftFieldText, rightFieldText, groovyShell, project));
-            defaultActionGroup.add(new InstallAction(leftFieldText, rightFieldText, groovyShell, coderSourceBox, coderTargetBox, baseCoders, dynamicCoders, project));
+            defaultActionGroup.add(new InstallAction(leftFieldText, rightFieldText, groovyShell, coderSourceBox, baseCoders, dynamicCoders, project));
             defaultActionGroup.add(new UsingProjectLibraryAction(project));
             defaultActionGroup.add(new RunAction(leftFieldText, rightFieldText, groovyShell, project));
             SimpleToolWindowPanel panel = new SimpleToolWindowPanel(true, false);
