@@ -1,7 +1,10 @@
+import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
+
 plugins {
     id("java")
     id("org.jetbrains.kotlin.jvm") version "1.9.0"
     id("org.jetbrains.intellij") version "1.10.1"
+    id("com.github.johnrengelman.shadow") version "7.1.2"
 }
 
 group = "dev.coolrequest.tool.views.coder"
@@ -15,12 +18,15 @@ repositories {
 intellij {
     version.set("2022.1")
     type.set("IC") // Target IDE Platform
-    plugins.set(listOf("com.intellij.java", "org.intellij.groovy"))
+    plugins.set(listOf("com.intellij.java","org.jetbrains.plugins.yaml", "org.intellij.groovy"))
 }
 
 dependencies {
     testImplementation(kotlin("test"))
     implementation(fileTree("/libs"))
+    // https://mvnrepository.com/artifact/com.alibaba.fastjson2/fastjson2
+    implementation("com.alibaba.fastjson2:fastjson2:2.0.52")
+
 }
 
 tasks {
@@ -38,6 +44,13 @@ tasks {
 //            if (it.isDirectory) it else zipTree(it)
 //        })
 //    }
+    withType<ShadowJar>{
+        relocate("com.alibaba.fastjson2","dev.coolrequest.shadow.com.alibaba.fastjson2")
+        dependencies {
+            exclude(dependency("com.jetbrains.*:.*:.*"))
+            exclude(dependency("org.jetbrains.*:.*:.*"))
+        }
+    }
 
     withType<JavaExec> {
         jvmArgs("-Dfile.encoding=UTF-8")

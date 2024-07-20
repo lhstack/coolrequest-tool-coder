@@ -17,15 +17,16 @@ import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.ui.JBSplitter;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.components.JBTextArea;
-import dev.coolrequest.tool.common.Constant;
+import dev.coolrequest.tool.common.CacheConstant;
 import dev.coolrequest.tool.common.I18n;
 import dev.coolrequest.tool.common.LogContext;
 import dev.coolrequest.tool.common.Logger;
 import dev.coolrequest.tool.components.MultiLanguageTextField;
-import dev.coolrequest.tool.components.SimpleDialog;
+import dev.coolrequest.tool.components.SimpleFrame;
 import dev.coolrequest.tool.state.GlobalState;
 import dev.coolrequest.tool.state.GlobalStateManager;
 import dev.coolrequest.tool.utils.ClassLoaderUtils;
+import dev.coolrequest.tool.utils.ComponentUtils;
 import dev.coolrequest.tool.views.coder.custom.*;
 import groovy.lang.Binding;
 import groovy.lang.GroovyShell;
@@ -61,10 +62,11 @@ public class CoderView extends JPanel implements DocumentListener {
     private final Logger logger;
     private final MultiLanguageTextField leftTextField;
     private final MultiLanguageTextField rightTextField;
+    private final Project project;
 
     public CoderView(Project project) {
         super(new BorderLayout());
-
+        this.project = project;
         LogContext logContext = LogContext.getInstance(project);
         this.logger = logContext.getLogger(CoderView.class);
         //加载Coder的实现
@@ -88,7 +90,7 @@ public class CoderView extends JPanel implements DocumentListener {
         leftSource = new LeftSource();
         rightTarget = new RightTarget(project, createGroovyShell(project));
         GlobalState globalState = GlobalStateManager.loadState(project);
-        String customCoderScript = globalState.getOptionalStrCache(Constant.CODER_VIEW_CUSTOM_CODER_SCRIPT_CODE).orElse(null);
+        String customCoderScript = globalState.getOptionalStrCache(CacheConstant.CODER_VIEW_CUSTOM_CODER_SCRIPT_CODE).orElse(null);
         if (customCoderScript != null) {
             logger.info("load custom coders");
             loadCustomCoders(customCoderScript, createGroovyShell(project));
@@ -140,6 +142,7 @@ public class CoderView extends JPanel implements DocumentListener {
         binding.setVariable("coder", coderRegistry);
         binding.setVariable("sysLog", logger);
         binding.setVariable("log", logger);
+        binding.setVariable("env",GlobalStateManager.loadState(this.project).getJsonObjCache(CacheConstant.CODER_VIEW_CUSTOM_CODER_ENVIRONMENT));
         Script script = groovyShell.get().parse(customCoderScript);
         script.setBinding(binding);
         FutureTask<Object> futureTask = new FutureTask<>(script::run);
@@ -225,19 +228,6 @@ public class CoderView extends JPanel implements DocumentListener {
         }
     }
 
-    //创建FlowLayout布局面板,靠左对齐
-    private JPanel createFlowLayoutPanel(JComponent component, int layout) {
-        JPanel jPanel = new JPanel(new FlowLayout(layout));
-        jPanel.add(component);
-        return jPanel;
-    }
-
-    private JPanel createJustifiedPanel(JComponent left, JComponent right) {
-        JPanel jPanel = new JPanel(new GridLayout(1, 2));
-        jPanel.add(createFlowLayoutPanel(left, FlowLayout.LEFT));
-        jPanel.add(createFlowLayoutPanel(right, FlowLayout.RIGHT));
-        return jPanel;
-    }
 
     @Override
     public void documentChanged(com.intellij.openapi.editor.event.@NotNull DocumentEvent event) {
@@ -287,7 +277,7 @@ public class CoderView extends JPanel implements DocumentListener {
             jPanel.add(clearButton);
             jPanel.add(customCoder);
             //添加下拉框,左对齐
-            add(createFlowLayoutPanel(jPanel, FlowLayout.LEFT), BorderLayout.NORTH);
+            add(ComponentUtils.createFlowLayoutPanel(jPanel, FlowLayout.LEFT), BorderLayout.NORTH);
             //内容框
             add(new JScrollPane(rightTextField), BorderLayout.CENTER);
         }
@@ -296,9 +286,10 @@ public class CoderView extends JPanel implements DocumentListener {
          * 自定义Coder点击事件
          */
         private void customCoderMouseClicked(Supplier<GroovyShell> groovyShell) {
-            SimpleDialog coder = new SimpleDialog(createCustomCoderPanel(groovyShell), I18n.getString("coder.custom.title", project), new Dimension(1000, 600));
+            SimpleFrame coder = new SimpleFrame(createCustomCoderPanel(groovyShell), I18n.getString("coder.custom.title", project), new Dimension(1000, 600));
             if (state.compareAndSet(false, true)) {
                 coder.setVisible(true);
+                coder.setAlwaysOnTop(false);
                 coder.addWindowListener(new WindowAdapter() {
                     @Override
                     public void windowClosing(WindowEvent e) {
@@ -311,7 +302,7 @@ public class CoderView extends JPanel implements DocumentListener {
         private JComponent createCustomCoderPanel(Supplier<GroovyShell> groovyShell) {
             LanguageFileType groovyFileType = (LanguageFileType) FileTypeManager.getInstance().getFileTypeByExtension("groovy");
             MultiLanguageTextField leftFieldText = new MultiLanguageTextField(groovyFileType, project);
-            String script = GlobalStateManager.loadState(project).getOptionalStrCache(Constant.CODER_VIEW_CUSTOM_CODER_SCRIPT_CODE).orElse(null);
+            String script = GlobalStateManager.loadState(project).getOptionalStrCache(CacheConstant.CODER_VIEW_CUSTOM_CODER_SCRIPT_CODE).orElse(null);
             if (script != null) {
                 if (StringUtils.isNotBlank(script)) {
                     leftFieldText.setText(script);
@@ -322,6 +313,7 @@ public class CoderView extends JPanel implements DocumentListener {
             rightFieldText.setEditable(false);
             //设置actionGroup
             DefaultActionGroup defaultActionGroup = new DefaultActionGroup();
+            defaultActionGroup.add(new EnvAction(project));
             defaultActionGroup.add(new DemoAction(leftFieldText, rightFieldText, project));
             defaultActionGroup.add(new CompileAction(leftFieldText, rightFieldText, groovyShell, project));
             defaultActionGroup.add(new InstallAction(leftFieldText, rightFieldText, groovyShell, coderSourceBox, coderTargetBox, baseCoders, dynamicCoders, project));
@@ -345,7 +337,7 @@ public class CoderView extends JPanel implements DocumentListener {
         public LeftSource() {
             super(new BorderLayout());
             //下拉框
-            add(createFlowLayoutPanel(coderSourceBox, FlowLayout.LEFT), BorderLayout.NORTH);
+            add(ComponentUtils.createFlowLayoutPanel(coderSourceBox, FlowLayout.LEFT), BorderLayout.NORTH);
             //内容框
             add(leftTextField, BorderLayout.CENTER);
         }

@@ -61,6 +61,7 @@ public class InstallAction extends AnAction {
             binding.setVariable("coder", coderRegistry);
             binding.setVariable("log", contextLogger);
             binding.setVariable("sysLog", this.logger);
+            binding.setVariable("env",GlobalStateManager.loadState(project).getJsonObjCache(CacheConstant.CODER_VIEW_CUSTOM_CODER_ENVIRONMENT));
             Script script = this.groovyShell.get().parse(code);
             script.setBinding(binding);
             FutureTask<Object> futureTask = new FutureTask<>(script::run);
@@ -95,7 +96,7 @@ public class InstallAction extends AnAction {
                 //添加到box中
                 source.forEach(coderSourceBox::addItem);
                 GlobalState globalState = GlobalStateManager.loadState(project);
-                globalState.putCache(Constant.CODER_VIEW_CUSTOM_CODER_SCRIPT_CODE, codeTextField.getText());
+                globalState.putCache(CacheConstant.CODER_VIEW_CUSTOM_CODER_SCRIPT_CODE, codeTextField.getText());
                 GlobalStateManager.persistence(project);
                 this.logger.info("");
                 this.logger.info("install coders: " + coderRegistry.getRegistryCoders());

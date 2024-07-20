@@ -1,5 +1,6 @@
 package dev.coolrequest.tool.state;
 
+import com.alibaba.fastjson2.JSONObject;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.HashMap;
@@ -63,5 +64,17 @@ public class GlobalState {
             return false;
         }
         return Boolean.parseBoolean(String.valueOf(o));
+    }
+
+    public void removeCache(String name) {
+        cache.remove(name);
+    }
+
+    public Object getJsonObjCache(String name) {
+        Object obj = cache.get(name);
+        if (obj == null) {
+            return new JSONObject();
+        }
+        return obj;
     }
 }

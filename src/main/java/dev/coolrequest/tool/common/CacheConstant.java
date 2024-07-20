@@ -1,6 +1,6 @@
 package dev.coolrequest.tool.common;
 
-public interface Constant {
+public interface CacheConstant {
 
     /**
      * 缓存ScriptView视图中的自定义的ClassPath内容
@@ -21,4 +21,19 @@ public interface Constant {
      * 缓存自定义coder代码内容
      */
     String CODER_VIEW_CUSTOM_CODER_SCRIPT_CODE = "CoderView:CustomCoder:Code";
+
+    /**
+     * 自定义coder环境缓存 纯文本,编辑器使用
+     */
+    String CODER_VIEW_CUSTOM_CODER_ENVIRONMENT_TEXT = "CoderView:CustomCoder:EnvironmentText";
+
+    /**
+     * 自定义coder环境类型
+     */
+    String CODER_VIEW_CUSTOM_CODER_ENVIRONMENT_TYPE = "CoderView:CustomCoder:EnvironmentType";
+
+    /**
+     * map结构的环境缓存
+     */
+    String CODER_VIEW_CUSTOM_CODER_ENVIRONMENT = "CoderView:CustomCoder:Environment";
 }

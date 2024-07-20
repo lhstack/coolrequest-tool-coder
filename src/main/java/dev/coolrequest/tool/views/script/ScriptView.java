@@ -14,11 +14,10 @@ import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.components.JBTextArea;
 import dev.coolrequest.tool.common.*;
 import dev.coolrequest.tool.components.MultiLanguageTextField;
-import dev.coolrequest.tool.components.SimpleDialog;
+import dev.coolrequest.tool.components.SimpleFrame;
 import dev.coolrequest.tool.state.GlobalState;
 import dev.coolrequest.tool.state.GlobalStateManager;
 import dev.coolrequest.tool.utils.ClassLoaderUtils;
-import dev.coolrequest.tool.views.coder.custom.DemoAction;
 import groovy.lang.Binding;
 import groovy.lang.GroovyClassLoader;
 import groovy.lang.GroovyShell;
@@ -52,7 +51,7 @@ public class ScriptView extends JPanel {
         super(new BorderLayout());
         this.project = project;
         logger = LogContext.getInstance(project).getLogger(ScriptView.class);
-        GlobalStateManager.loadState(project).getOptionalStrCache(Constant.SCRIPT_VIEW_CACHE_CLASSPATH).ifPresent(classPathTextArea::setText);
+        GlobalStateManager.loadState(project).getOptionalStrCache(CacheConstant.SCRIPT_VIEW_CACHE_CLASSPATH).ifPresent(classPathTextArea::setText);
         Left left = new Left(project);
         Right right = new Right(textArea -> {
             String text = left.getLanguageTextField().getText();
@@ -74,7 +73,7 @@ public class ScriptView extends JPanel {
         try (GroovyClassLoader groovyClassLoader = new GroovyClassLoader(ScriptView.class.getClassLoader(), compilerConfiguration)) {
             GroovyShell groovyShell = new GroovyShell(groovyClassLoader, compilerConfiguration);
             GlobalState globalState = GlobalStateManager.loadState(project);
-            if (globalState.getBooleanCache(Constant.SCRIPT_VIEW_CACHE_USING_PROJECT_LIBRARY)) {
+            if (globalState.getBooleanCache(CacheConstant.SCRIPT_VIEW_CACHE_USING_PROJECT_LIBRARY)) {
                 for (Library library : LibraryTablesRegistrar.getInstance().getLibraryTable(project).getLibraries()) {
                     for (VirtualFile file : library.getFiles(OrderRootType.CLASSES)) {
                         URL url = new File(file.getPresentableUrl()).toURI().toURL();
@@ -107,7 +106,7 @@ public class ScriptView extends JPanel {
                 futureTask.cancel(true);
                 scriptLogger.error("脚本执行失败,错误信息: " + e);
             }
-            GlobalStateManager.loadState(project).putCache(Constant.SCRIPT_VIEW_CACHE_CODE, script);
+            GlobalStateManager.loadState(project).putCache(CacheConstant.SCRIPT_VIEW_CACHE_CODE, script);
             GlobalStateManager.persistence(project);
         } catch (Throwable e) {
             scriptLogger.error("groovy脚本执行错误: " + e.getMessage() + "\n");
@@ -152,7 +151,7 @@ public class ScriptView extends JPanel {
             super(new BorderLayout());
             LanguageFileType groovyFileType = (LanguageFileType) FileTypeManager.getInstance().getFileTypeByExtension("groovy");
             languageTextField = new MultiLanguageTextField(groovyFileType, project);
-            GlobalStateManager.loadState(project).getOptionalStrCache(Constant.SCRIPT_VIEW_CACHE_CODE).ifPresent(languageTextField::setText);
+            GlobalStateManager.loadState(project).getOptionalStrCache(CacheConstant.SCRIPT_VIEW_CACHE_CODE).ifPresent(languageTextField::setText);
             JButton button = new JButton(I18n.getString("script.addclasspath.title", project));
             button.addMouseListener(new MouseAdapter() {
 
@@ -162,13 +161,13 @@ public class ScriptView extends JPanel {
                 public void mouseClicked(MouseEvent e) {
                     if (e.getButton() == MouseEvent.BUTTON1) {
                         if (state.compareAndSet(false, true)) {
-                            SimpleDialog dialog = new SimpleDialog(new JBScrollPane(classPathTextArea), I18n.getString("script.addclasspath.title", project), new Dimension(600, 400));
+                            SimpleFrame dialog = new SimpleFrame(new JBScrollPane(classPathTextArea), I18n.getString("script.addclasspath.title", project), new Dimension(600, 400));
                             dialog.setVisible(true);
                             dialog.addWindowListener(new WindowAdapter() {
                                 @Override
                                 public void windowClosing(WindowEvent e) {
                                     if (StringUtils.isNotBlank(classPathTextArea.getText())) {
-                                        GlobalStateManager.loadState(project).putCache(Constant.SCRIPT_VIEW_CACHE_CLASSPATH, classPathTextArea.getText());
+                                        GlobalStateManager.loadState(project).putCache(CacheConstant.SCRIPT_VIEW_CACHE_CLASSPATH, classPathTextArea.getText());
                                         GlobalStateManager.persistence(project);
                                     }
                                     state.set(false);
@@ -205,14 +204,14 @@ public class ScriptView extends JPanel {
 
                 @Override
                 public boolean isSelected(@NotNull AnActionEvent anActionEvent) {
-                    return globalState.getBooleanCache(Constant.SCRIPT_VIEW_CACHE_USING_PROJECT_LIBRARY);
+                    return globalState.getBooleanCache(CacheConstant.SCRIPT_VIEW_CACHE_USING_PROJECT_LIBRARY);
                 }
 
                 @Override
                 public void setSelected(@NotNull AnActionEvent event, boolean state) {
-                    boolean currentState = globalState.getBooleanCache(Constant.SCRIPT_VIEW_CACHE_USING_PROJECT_LIBRARY);
+                    boolean currentState = globalState.getBooleanCache(CacheConstant.SCRIPT_VIEW_CACHE_USING_PROJECT_LIBRARY);
                     if (currentState != state) {
-                        globalState.putCache(Constant.SCRIPT_VIEW_CACHE_USING_PROJECT_LIBRARY, state);
+                        globalState.putCache(CacheConstant.SCRIPT_VIEW_CACHE_USING_PROJECT_LIBRARY, state);
                         GlobalStateManager.persistence(project);
                     }
                 }

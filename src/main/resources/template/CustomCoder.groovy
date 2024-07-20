@@ -11,7 +11,7 @@ coder.registry("text", "hex", s -> {
         log.error("转换失败,错误信息: ${e.getMessage()}")
     }
 })
-
+log.info(env.getOrDefault("env1","测试"))
 log.info("注册函数: text to hex")
 log.warn("注册函数: text to hex")
 log.error("注册函数: text to hex")
