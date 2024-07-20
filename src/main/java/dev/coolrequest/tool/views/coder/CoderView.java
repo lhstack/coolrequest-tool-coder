@@ -197,7 +197,7 @@ public class CoderView extends JPanel implements DocumentListener {
     private Supplier<GroovyShell> createGroovyShell(Project project) {
 
         return () -> {
-            GroovyShell groovyShell = new GroovyShell();
+            GroovyShell groovyShell = new GroovyShell(CoderView.class.getClassLoader());
             if (GlobalStateManager.loadState(project).isCustomCoderUsingProjectLibrary()) {
                 try {
                     for (Library library : LibraryTablesRegistrar.getInstance().getLibraryTable(project).getLibraries()) {
