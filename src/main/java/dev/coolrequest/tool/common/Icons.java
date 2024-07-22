@@ -13,4 +13,5 @@ public interface Icons {
     Icon INSTALL = IconLoader.findIcon(ClassLoaderUtils.getResource("icons/install.svg"));
     Icon RUN = IconLoader.findIcon(ClassLoaderUtils.getResource("icons/run.svg"));
     Icon ENV = IconLoader.findIcon(ClassLoaderUtils.getResource("icons/env.svg"));
+    Icon CLEAR = IconLoader.findIcon(ClassLoaderUtils.getResource("icons/clear.svg"));
 }

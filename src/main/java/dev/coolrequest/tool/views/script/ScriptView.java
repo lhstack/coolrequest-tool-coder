@@ -14,6 +14,7 @@ import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.components.JBTextArea;
 import dev.coolrequest.tool.common.*;
 import dev.coolrequest.tool.components.MultiLanguageTextField;
+import dev.coolrequest.tool.components.PopupMenu;
 import dev.coolrequest.tool.components.SimpleFrame;
 import dev.coolrequest.tool.state.GlobalState;
 import dev.coolrequest.tool.state.GlobalStateManager;
@@ -133,11 +134,12 @@ public class ScriptView extends JPanel {
             clearLogButton.addMouseListener(new MouseAdapter() {
                 @Override
                 public void mouseClicked(MouseEvent e) {
-                    if (e.getButton() == MouseEvent.BUTTON1) {
+                    if (SwingUtilities.isLeftMouseButton(e)) {
                         targetTextArea.setText(String.format("注意事项: \n%s\n", "只可使用项目依赖的jar包中的对象以及jdk提供的对象,其他不可使用,如需使用,请手动设置classpath,多个通过,或者空行隔开"));
                     }
                 }
             });
+            PopupMenu.attachClearMenu(I18n.getString("script.clearLog", project), Icons.CLEAR, targetTextArea);
             add(createFlowLayoutPanel(button, clearLogButton), BorderLayout.NORTH);
             add(new JScrollPane(targetTextArea), BorderLayout.CENTER);
         }
@@ -160,7 +162,7 @@ public class ScriptView extends JPanel {
 
                 @Override
                 public void mouseClicked(MouseEvent e) {
-                    if (e.getButton() == MouseEvent.BUTTON1) {
+                    if (SwingUtilities.isLeftMouseButton(e)) {
                         if (state.compareAndSet(false, true)) {
                             this.frame = new SimpleFrame(new JBScrollPane(classPathTextArea), I18n.getString("script.addclasspath.title", project), new Dimension(600, 400));
                             frame.setVisible(true);
@@ -174,7 +176,7 @@ public class ScriptView extends JPanel {
                                     state.set(false);
                                 }
                             });
-                        }else {
+                        } else {
                             frame.toFront();
                         }
                     }

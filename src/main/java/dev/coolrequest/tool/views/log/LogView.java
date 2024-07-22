@@ -2,7 +2,9 @@ package dev.coolrequest.tool.views.log;
 
 import com.intellij.openapi.project.Project;
 import dev.coolrequest.tool.common.I18n;
+import dev.coolrequest.tool.common.Icons;
 import dev.coolrequest.tool.common.LogContext;
+import dev.coolrequest.tool.components.PopupMenu;
 
 import javax.swing.*;
 import java.awt.*;
@@ -25,6 +27,7 @@ public class LogView extends JPanel {
                 }
             }
         });
+        PopupMenu.attachClearMenu(I18n.getString("script.clearLog", project), Icons.CLEAR, logContext.getTextArea());
         JPanel clearLogButtonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         clearLogButtonPanel.add(clearLogButton);
         //添加下拉框,左对齐

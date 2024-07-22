@@ -17,11 +17,9 @@ import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.ui.JBSplitter;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.components.JBTextArea;
-import dev.coolrequest.tool.common.CacheConstant;
-import dev.coolrequest.tool.common.I18n;
-import dev.coolrequest.tool.common.LogContext;
-import dev.coolrequest.tool.common.Logger;
+import dev.coolrequest.tool.common.*;
 import dev.coolrequest.tool.components.MultiLanguageTextField;
+import dev.coolrequest.tool.components.PopupMenu;
 import dev.coolrequest.tool.components.SimpleFrame;
 import dev.coolrequest.tool.state.GlobalState;
 import dev.coolrequest.tool.state.GlobalStateManager;
@@ -142,7 +140,7 @@ public class CoderView extends JPanel implements DocumentListener {
         binding.setVariable("coder", coderRegistry);
         binding.setVariable("sysLog", logger);
         binding.setVariable("log", logger);
-        binding.setVariable("env",GlobalStateManager.loadState(this.project).getJsonObjCache(CacheConstant.CODER_VIEW_CUSTOM_CODER_ENVIRONMENT));
+        binding.setVariable("env", GlobalStateManager.loadState(this.project).getJsonObjCache(CacheConstant.CODER_VIEW_CUSTOM_CODER_ENVIRONMENT));
         Script script = groovyShell.get().parse(customCoderScript);
         script.setBinding(binding);
         FutureTask<Object> futureTask = new FutureTask<>(script::run);
@@ -289,7 +287,7 @@ public class CoderView extends JPanel implements DocumentListener {
         private void customCoderMouseClicked(Supplier<GroovyShell> groovyShell) {
             if (state.compareAndSet(false, true)) {
                 List<Runnable> disposes = new ArrayList<>();
-                this.coder = new SimpleFrame(createCustomCoderPanel(groovyShell,disposes), I18n.getString("coder.custom.title", project), new Dimension(1000, 600));
+                this.coder = new SimpleFrame(createCustomCoderPanel(groovyShell, disposes), I18n.getString("coder.custom.title", project), new Dimension(1000, 600));
                 coder.setVisible(true);
                 coder.addWindowListener(new WindowAdapter() {
                     @Override
@@ -298,7 +296,7 @@ public class CoderView extends JPanel implements DocumentListener {
                         state.set(false);
                     }
                 });
-            }else {
+            } else {
                 this.coder.toFront();
             }
         }
@@ -317,7 +315,7 @@ public class CoderView extends JPanel implements DocumentListener {
             rightFieldText.setEditable(false);
             //设置actionGroup
             DefaultActionGroup defaultActionGroup = new DefaultActionGroup();
-            defaultActionGroup.add(new EnvAction(project,disposeRegistry));
+            defaultActionGroup.add(new EnvAction(project, disposeRegistry));
             defaultActionGroup.add(new DemoAction(leftFieldText, rightFieldText, project));
             defaultActionGroup.add(new CompileAction(leftFieldText, rightFieldText, groovyShell, project));
             defaultActionGroup.add(new InstallAction(leftFieldText, rightFieldText, groovyShell, coderSourceBox, baseCoders, dynamicCoders, project));
@@ -328,9 +326,11 @@ public class CoderView extends JPanel implements DocumentListener {
             panel.setToolbar(actionToolbar.getComponent());
             JBSplitter splitter = new JBSplitter();
             splitter.setFirstComponent(leftFieldText);
-            splitter.setSecondComponent(new JBScrollPane(rightFieldText));
+            JBScrollPane jbScrollPane = new JBScrollPane(rightFieldText);
+            splitter.setSecondComponent(jbScrollPane);
             //设置内容
             panel.setContent(splitter);
+            PopupMenu.attachClearMenu(I18n.getString("script.clearLog", project), Icons.CLEAR, rightFieldText);
             return panel;
         }
 
