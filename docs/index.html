@@ -7,28 +7,62 @@
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>CoolRequest.Coder</title>
     <link rel="shortcut icon" href="logo.svg" type="image/x-icon">
+    <link
+            rel="stylesheet"
+            href="css/element.css"
+    />
+    <!-- Import Vue 3 -->
+    <script src="js/vue.global.js"></script>
+    <!-- Import component library -->
+    <script src="js/element.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+        }
+        .pic {
+            margin: 0 auto;
+        }
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+    </style>
 </head>
 <body>
     <div id="app">
-        <div v-text="count"></div>
-
-        <button title="点击它会让上面的数字加一" @click="incr">这是一个点击事件</button>
+        <div class="pic" style="width: 1000px;height: 800px">
+            <el-carousel height="800px" motion-blur>
+                <el-carousel-item v-for="url in urls" :key="url">
+                    <img :src="url" height="800" width="1000" />
+                </el-carousel-item>
+            </el-carousel>
+        </div>
     </div>
 </body>
-<script src="js/vue.global.js"></script>
 <script>
-    const {createApp, ref} = Vue
+    const {createApp, ref,reactive} = Vue
     createApp({
         setup() {
-            const count = ref(1)
-            let incr = () => {
-                count.value ++
-            }
+            let urls = reactive([
+                "images/1.png",
+                "images/2.png",
+                "images/3.png",
+                "images/4.png",
+                "images/5.png",
+                "images/6.png",
+                "images/7.png",
+                "images/8.png",
+                "images/9.png",
+                "images/10.png",
+                "images/11.png",
+            ])
             return {
-                count,
-                incr
+                urls
             }
         }
-    }).mount('#app')
+    }).use(ElementPlus).mount('#app')
 </script>
 </html>
