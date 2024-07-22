@@ -10,7 +10,7 @@ import com.intellij.openapi.ui.ComboBox;
 import com.intellij.openapi.ui.Messages;
 import dev.coolrequest.tool.common.*;
 import dev.coolrequest.tool.components.MultiLanguageTextField;
-import dev.coolrequest.tool.components.SimpleDialog;
+import dev.coolrequest.tool.components.SimpleFrame;
 import dev.coolrequest.tool.state.GlobalState;
 import dev.coolrequest.tool.state.GlobalStateManager;
 import dev.coolrequest.tool.utils.ComponentUtils;
@@ -29,6 +29,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 public class EnvAction extends AnAction {
@@ -39,6 +40,9 @@ public class EnvAction extends AnAction {
 
     private final Logger logger;
     private final GlobalState globalState;
+    private SimpleFrame frame;
+
+    private AtomicBoolean state = new AtomicBoolean(false);
 
     public EnvAction(Project project) {
         super(() -> I18n.getString("env.title", project), Icons.ENV);
@@ -65,91 +69,101 @@ public class EnvAction extends AnAction {
 
     @Override
     public void actionPerformed(@NotNull AnActionEvent event) {
-        JPanel jPanel = new JPanel(new BorderLayout());
-        jPanel.add(this.multiLanguageFieldText, BorderLayout.CENTER);
-        JButton okButton = new JButton(I18n.getString("button.ok", project));
-        JButton cancelButton = new JButton(I18n.getString("button.cancel", project));
-        JButton applyButton = new JButton(I18n.getString("button.apply", project));
-        jPanel.add(ComponentUtils.createFlowLayoutPanel(FlowLayout.RIGHT, this.comboBox, okButton, cancelButton, applyButton), BorderLayout.SOUTH);
-        SimpleDialog dialog = new SimpleDialog(I18n.getString("env.title", project), jPanel);
-        ComponentUtils.addMouseClickListener(applyButton, e -> {
-            String text = multiLanguageFieldText.getText();
-            //如果缓存有数据,文本没有数据,应该提示用户
-            if (StringUtils.isBlank(text) && globalState.getOptionalStrCache(CacheConstant.CODER_VIEW_CUSTOM_CODER_ENVIRONMENT_TEXT).isPresent()) {
-                int i = JOptionPane.showConfirmDialog(dialog, "当前编辑器中没有内容,点击确认会覆盖之前设置的环境,请谨慎操作", "警告", JOptionPane.OK_CANCEL_OPTION);
-                if (i == JOptionPane.OK_OPTION) {
-                    multiLanguageFieldText.setText("");
-                    globalState.removeCache(CacheConstant.CODER_VIEW_CUSTOM_CODER_ENVIRONMENT_TEXT);
-                    globalState.putCache(CacheConstant.CODER_VIEW_CUSTOM_CODER_ENVIRONMENT_TYPE, this.comboBox.getSelectedItem());
-                    GlobalStateManager.persistence(project);
-                }
-            } else {
-                if (check()) {
-                    //有内容,则覆盖
-                    globalState.putCache(CacheConstant.CODER_VIEW_CUSTOM_CODER_ENVIRONMENT_TYPE, this.comboBox.getSelectedItem());
-                    globalState.putCache(CacheConstant.CODER_VIEW_CUSTOM_CODER_ENVIRONMENT_TEXT, text);
-                    GlobalStateManager.persistence(project);
-                } else {
-                    Messages.showInfoMessage(dialog, "文件类型不支持,请检查你的数据和文件类型", "错误提示");
-                }
-            }
-        });
-        ComponentUtils.addMouseClickListener(okButton, e -> {
-            String text = multiLanguageFieldText.getText();
-            //如果缓存有数据,文本没有数据,应该提示用户
-            if (StringUtils.isBlank(text) && globalState.getOptionalStrCache(CacheConstant.CODER_VIEW_CUSTOM_CODER_ENVIRONMENT_TEXT).isPresent()) {
-                int i = JOptionPane.showConfirmDialog(dialog, "当前编辑器中没有内容,点击确认会覆盖之前设置的环境,请谨慎操作", "警告", JOptionPane.OK_CANCEL_OPTION);
-                if (i == JOptionPane.OK_OPTION) {
-                    multiLanguageFieldText.setText("");
-                    globalState.removeCache(CacheConstant.CODER_VIEW_CUSTOM_CODER_ENVIRONMENT_TEXT);
-                    globalState.putCache(CacheConstant.CODER_VIEW_CUSTOM_CODER_ENVIRONMENT_TYPE, this.comboBox.getSelectedItem());
-                    GlobalStateManager.persistence(project);
-                    dialog.dispose();
-                }
-            } else {
-                if (check()) {
-                    //有内容,则覆盖
-                    globalState.putCache(CacheConstant.CODER_VIEW_CUSTOM_CODER_ENVIRONMENT_TYPE, this.comboBox.getSelectedItem());
-                    globalState.putCache(CacheConstant.CODER_VIEW_CUSTOM_CODER_ENVIRONMENT_TEXT, text);
-                    GlobalStateManager.persistence(project);
-                    dialog.dispose();
-                } else {
-                    Messages.showInfoMessage(dialog, "文件类型不支持,请检查你的数据和文件类型", "错误提示");
-                }
-            }
-        });
-        ComponentUtils.addMouseClickListener(cancelButton, e -> {
-            String text = multiLanguageFieldText.getText();
-            String cacheText = globalState.getOptionalStrCache(CacheConstant.CODER_VIEW_CUSTOM_CODER_ENVIRONMENT_TEXT).orElse("");
-            if (!StringUtils.equals(text, cacheText)) {
-                int i = JOptionPane.showConfirmDialog(dialog, "当前编辑器内容发生改变,点击确定会放弃保存,请谨慎操作", "警告", JOptionPane.OK_CANCEL_OPTION);
-                if (i == JOptionPane.OK_OPTION) {
-                    Optional<String> cache = globalState.getOptionalStrCache(CacheConstant.CODER_VIEW_CUSTOM_CODER_ENVIRONMENT_TEXT);
-                    if (cache.isPresent()) {
-                        cache.ifPresent(multiLanguageFieldText::setText);
-                    } else {
+        if (this.state.compareAndSet(false, true)) {
+            JPanel jPanel = new JPanel(new BorderLayout());
+            jPanel.add(this.multiLanguageFieldText, BorderLayout.CENTER);
+            JButton okButton = new JButton(I18n.getString("button.ok", project));
+            JButton cancelButton = new JButton(I18n.getString("button.cancel", project));
+            JButton applyButton = new JButton(I18n.getString("button.apply", project));
+            jPanel.add(ComponentUtils.createFlowLayoutPanel(FlowLayout.RIGHT, this.comboBox, okButton, cancelButton, applyButton), BorderLayout.SOUTH);
+            this.frame = new SimpleFrame(jPanel, I18n.getString("env.title", project), new Dimension(800, 600));
+            ComponentUtils.addMouseClickListener(applyButton, e -> {
+                String text = multiLanguageFieldText.getText();
+                //如果缓存有数据,文本没有数据,应该提示用户
+                if (StringUtils.isBlank(text) && globalState.getOptionalStrCache(CacheConstant.CODER_VIEW_CUSTOM_CODER_ENVIRONMENT_TEXT).isPresent()) {
+                    int i = JOptionPane.showConfirmDialog(frame, "当前编辑器中没有内容,点击确认会覆盖之前设置的环境,请谨慎操作", "警告", JOptionPane.OK_CANCEL_OPTION);
+                    if (i == JOptionPane.OK_OPTION) {
                         multiLanguageFieldText.setText("");
+                        globalState.removeCache(CacheConstant.CODER_VIEW_CUSTOM_CODER_ENVIRONMENT_TEXT);
+                        globalState.putCache(CacheConstant.CODER_VIEW_CUSTOM_CODER_ENVIRONMENT_TYPE, this.comboBox.getSelectedItem());
+                        GlobalStateManager.persistence(project);
+                        Messages.showInfoMessage("操作成功",I18n.getString("button.apply", project));
                     }
+                } else {
+                    if (check()) {
+                        //有内容,则覆盖
+                        globalState.putCache(CacheConstant.CODER_VIEW_CUSTOM_CODER_ENVIRONMENT_TYPE, this.comboBox.getSelectedItem());
+                        globalState.putCache(CacheConstant.CODER_VIEW_CUSTOM_CODER_ENVIRONMENT_TEXT, text);
+                        GlobalStateManager.persistence(project);
+                        Messages.showInfoMessage("操作成功",I18n.getString("button.apply", project));
+                    } else {
+                        Messages.showInfoMessage(frame, "文件类型不支持,请检查你的数据和文件类型", "错误提示");
+                    }
+                }
+            });
+            ComponentUtils.addMouseClickListener(okButton, e -> {
+                String text = multiLanguageFieldText.getText();
+                //如果缓存有数据,文本没有数据,应该提示用户
+                if (StringUtils.isBlank(text) && globalState.getOptionalStrCache(CacheConstant.CODER_VIEW_CUSTOM_CODER_ENVIRONMENT_TEXT).isPresent()) {
+                    int i = JOptionPane.showConfirmDialog(frame, "当前编辑器中没有内容,点击确认会覆盖之前设置的环境,请谨慎操作", "警告", JOptionPane.OK_CANCEL_OPTION);
+                    if (i == JOptionPane.OK_OPTION) {
+                        multiLanguageFieldText.setText("");
+                        globalState.removeCache(CacheConstant.CODER_VIEW_CUSTOM_CODER_ENVIRONMENT_TEXT);
+                        globalState.putCache(CacheConstant.CODER_VIEW_CUSTOM_CODER_ENVIRONMENT_TYPE, this.comboBox.getSelectedItem());
+                        GlobalStateManager.persistence(project);
+                        frame.dispose();
+                        state.set(false);
+                    }
+                } else {
+                    if (check()) {
+                        //有内容,则覆盖
+                        globalState.putCache(CacheConstant.CODER_VIEW_CUSTOM_CODER_ENVIRONMENT_TYPE, this.comboBox.getSelectedItem());
+                        globalState.putCache(CacheConstant.CODER_VIEW_CUSTOM_CODER_ENVIRONMENT_TEXT, text);
+                        GlobalStateManager.persistence(project);
+                        frame.dispose();
+                        state.set(false);
+                    } else {
+                        Messages.showInfoMessage(frame, "文件类型不支持,请检查你的数据和文件类型", "错误提示");
+                    }
+                }
+            });
+            ComponentUtils.addMouseClickListener(cancelButton, e -> {
+                String text = multiLanguageFieldText.getText();
+                String cacheText = globalState.getOptionalStrCache(CacheConstant.CODER_VIEW_CUSTOM_CODER_ENVIRONMENT_TEXT).orElse("");
+                if (!StringUtils.equals(text, cacheText)) {
+                    int i = JOptionPane.showConfirmDialog(frame, "当前编辑器内容发生改变,点击确定会放弃保存,请谨慎操作", "警告", JOptionPane.OK_CANCEL_OPTION);
+                    if (i == JOptionPane.OK_OPTION) {
+                        Optional<String> cache = globalState.getOptionalStrCache(CacheConstant.CODER_VIEW_CUSTOM_CODER_ENVIRONMENT_TEXT);
+                        if (cache.isPresent()) {
+                            cache.ifPresent(multiLanguageFieldText::setText);
+                        } else {
+                            multiLanguageFieldText.setText("");
+                        }
+                        String envFileType = globalState.getOptionalStrCache(CacheConstant.CODER_VIEW_CUSTOM_CODER_ENVIRONMENT_TYPE).orElse(GlobalConstant.ENV_SUPPORT_TYPES[0]);
+                        comboBox.setSelectedItem(envFileType);
+                        frame.dispose();
+                        state.set(false);
+                    }
+                } else {
                     String envFileType = globalState.getOptionalStrCache(CacheConstant.CODER_VIEW_CUSTOM_CODER_ENVIRONMENT_TYPE).orElse(GlobalConstant.ENV_SUPPORT_TYPES[0]);
                     comboBox.setSelectedItem(envFileType);
-                    dialog.dispose();
+                    frame.dispose();
+                    state.set(false);
                 }
-            } else {
-                String envFileType = globalState.getOptionalStrCache(CacheConstant.CODER_VIEW_CUSTOM_CODER_ENVIRONMENT_TYPE).orElse(GlobalConstant.ENV_SUPPORT_TYPES[0]);
-                comboBox.setSelectedItem(envFileType);
-                dialog.dispose();
-            }
-        });
-        dialog.addWindowListener(new WindowAdapter() {
-            @Override
-            public void windowClosing(WindowEvent e) {
-                globalState.getOptionalStrCache(CacheConstant.CODER_VIEW_CUSTOM_CODER_ENVIRONMENT_TEXT).ifPresent(multiLanguageFieldText::setText);
-                String envFileType = globalState.getOptionalStrCache(CacheConstant.CODER_VIEW_CUSTOM_CODER_ENVIRONMENT_TYPE).orElse(GlobalConstant.ENV_SUPPORT_TYPES[0]);
-                comboBox.setSelectedItem(envFileType);
-            }
-        });
-        dialog.setVisible(true);
-
+            });
+            frame.addWindowListener(new WindowAdapter() {
+                @Override
+                public void windowClosing(WindowEvent e) {
+                    globalState.getOptionalStrCache(CacheConstant.CODER_VIEW_CUSTOM_CODER_ENVIRONMENT_TEXT).ifPresent(multiLanguageFieldText::setText);
+                    String envFileType = globalState.getOptionalStrCache(CacheConstant.CODER_VIEW_CUSTOM_CODER_ENVIRONMENT_TYPE).orElse(GlobalConstant.ENV_SUPPORT_TYPES[0]);
+                    comboBox.setSelectedItem(envFileType);
+                    state.set(false);
+                }
+            });
+            frame.setVisible(true);
+        }else {
+            frame.toFront();
+        }
     }
 
     private boolean check() {

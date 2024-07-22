@@ -155,15 +155,16 @@ public class ScriptView extends JPanel {
             JButton button = new JButton(I18n.getString("script.addclasspath.title", project));
             button.addMouseListener(new MouseAdapter() {
 
+                private SimpleFrame frame;
                 private final AtomicBoolean state = new AtomicBoolean(false);
 
                 @Override
                 public void mouseClicked(MouseEvent e) {
                     if (e.getButton() == MouseEvent.BUTTON1) {
                         if (state.compareAndSet(false, true)) {
-                            SimpleFrame dialog = new SimpleFrame(new JBScrollPane(classPathTextArea), I18n.getString("script.addclasspath.title", project), new Dimension(600, 400));
-                            dialog.setVisible(true);
-                            dialog.addWindowListener(new WindowAdapter() {
+                            this.frame = new SimpleFrame(new JBScrollPane(classPathTextArea), I18n.getString("script.addclasspath.title", project), new Dimension(600, 400));
+                            frame.setVisible(true);
+                            frame.addWindowListener(new WindowAdapter() {
                                 @Override
                                 public void windowClosing(WindowEvent e) {
                                     if (StringUtils.isNotBlank(classPathTextArea.getText())) {
@@ -173,6 +174,8 @@ public class ScriptView extends JPanel {
                                     state.set(false);
                                 }
                             });
+                        }else {
+                            frame.toFront();
                         }
                     }
                 }

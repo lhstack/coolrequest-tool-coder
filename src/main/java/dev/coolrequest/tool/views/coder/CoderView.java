@@ -238,6 +238,7 @@ public class CoderView extends JPanel implements DocumentListener {
         private final Project project;
 
         private final AtomicBoolean state = new AtomicBoolean(false);
+        private SimpleFrame coder;
 
         public RightTarget(Project project, Supplier<GroovyShell> groovyShell) {
             super(new BorderLayout());
@@ -286,16 +287,17 @@ public class CoderView extends JPanel implements DocumentListener {
          * 自定义Coder点击事件
          */
         private void customCoderMouseClicked(Supplier<GroovyShell> groovyShell) {
-            SimpleFrame coder = new SimpleFrame(createCustomCoderPanel(groovyShell), I18n.getString("coder.custom.title", project), new Dimension(1000, 600));
             if (state.compareAndSet(false, true)) {
+                this.coder = new SimpleFrame(createCustomCoderPanel(groovyShell), I18n.getString("coder.custom.title", project), new Dimension(1000, 600));
                 coder.setVisible(true);
-                coder.setAlwaysOnTop(false);
                 coder.addWindowListener(new WindowAdapter() {
                     @Override
                     public void windowClosing(WindowEvent e) {
                         state.set(false);
                     }
                 });
+            }else {
+                this.coder.toFront();
             }
         }
 
