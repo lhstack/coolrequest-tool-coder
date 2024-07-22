@@ -18,7 +18,7 @@ repositories {
 intellij {
     version.set("2022.1")
     type.set("IC") // Target IDE Platform
-    plugins.set(listOf("com.intellij.java","org.jetbrains.plugins.yaml", "org.intellij.groovy"))
+    plugins.set(listOf("com.intellij.java","org.jetbrains.plugins.yaml"))
 }
 
 dependencies {

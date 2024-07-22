@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>CoolRequest.Coder</title>
+    <link rel="shortcut icon" href="logo.svg" type="image/x-icon">
+</head>
+<body>
+    <div id="app">
+        <div v-text="count"></div>
+
+        <button title="点击它会让上面的数字加一" @click="incr">这是一个点击事件</button>
+    </div>
+</body>
+<script src="js/vue.global.js"></script>
+<script>
+    const {createApp, ref} = Vue
+    createApp({
+        setup() {
+            const count = ref(1)
+            let incr = () => {
+                count.value ++
+            }
+            return {
+                count,
+                incr
+            }
+        }
+    }).mount('#app')
+</script>
+</html>
