@@ -7,7 +7,6 @@ import com.intellij.ui.tabs.JBTabs;
 import com.intellij.ui.tabs.TabInfo;
 import com.intellij.ui.tabs.impl.JBTabsImpl;
 import dev.coolrequest.tool.common.I18n;
-import dev.coolrequest.tool.common.LogContext;
 import dev.coolrequest.tool.views.coder.CoderView;
 import dev.coolrequest.tool.views.log.LogView;
 import dev.coolrequest.tool.views.script.ScriptView;

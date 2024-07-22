@@ -26,6 +26,7 @@ import java.io.ByteArrayInputStream;
 import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
@@ -44,8 +45,11 @@ public class EnvAction extends AnAction {
 
     private AtomicBoolean state = new AtomicBoolean(false);
 
-    public EnvAction(Project project) {
+    public EnvAction(Project project, List<Runnable> disposeRegistry) {
         super(() -> I18n.getString("env.title", project), Icons.ENV);
+        disposeRegistry.add(() -> {
+            Optional.ofNullable(frame).ifPresent(Window::dispose);
+        });
         this.globalState = GlobalStateManager.loadState(project);
         String envFileType = globalState.getOptionalStrCache(CacheConstant.CODER_VIEW_CUSTOM_CODER_ENVIRONMENT_TYPE).orElse(GlobalConstant.ENV_SUPPORT_TYPES[0]);
         LanguageFileType fileType = (LanguageFileType) FileTypeManager.getInstance().getFileTypeByExtension(envFileType);

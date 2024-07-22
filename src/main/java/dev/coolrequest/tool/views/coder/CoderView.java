@@ -288,11 +288,13 @@ public class CoderView extends JPanel implements DocumentListener {
          */
         private void customCoderMouseClicked(Supplier<GroovyShell> groovyShell) {
             if (state.compareAndSet(false, true)) {
-                this.coder = new SimpleFrame(createCustomCoderPanel(groovyShell), I18n.getString("coder.custom.title", project), new Dimension(1000, 600));
+                List<Runnable> disposes = new ArrayList<>();
+                this.coder = new SimpleFrame(createCustomCoderPanel(groovyShell,disposes), I18n.getString("coder.custom.title", project), new Dimension(1000, 600));
                 coder.setVisible(true);
                 coder.addWindowListener(new WindowAdapter() {
                     @Override
                     public void windowClosing(WindowEvent e) {
+                        disposes.forEach(Runnable::run);
                         state.set(false);
                     }
                 });
@@ -301,7 +303,7 @@ public class CoderView extends JPanel implements DocumentListener {
             }
         }
 
-        private JComponent createCustomCoderPanel(Supplier<GroovyShell> groovyShell) {
+        private JComponent createCustomCoderPanel(Supplier<GroovyShell> groovyShell, List<Runnable> disposeRegistry) {
             LanguageFileType groovyFileType = (LanguageFileType) FileTypeManager.getInstance().getFileTypeByExtension("groovy");
             MultiLanguageTextField leftFieldText = new MultiLanguageTextField(groovyFileType, project);
             String script = GlobalStateManager.loadState(project).getOptionalStrCache(CacheConstant.CODER_VIEW_CUSTOM_CODER_SCRIPT_CODE).orElse(null);
@@ -315,7 +317,7 @@ public class CoderView extends JPanel implements DocumentListener {
             rightFieldText.setEditable(false);
             //设置actionGroup
             DefaultActionGroup defaultActionGroup = new DefaultActionGroup();
-            defaultActionGroup.add(new EnvAction(project));
+            defaultActionGroup.add(new EnvAction(project,disposeRegistry));
             defaultActionGroup.add(new DemoAction(leftFieldText, rightFieldText, project));
             defaultActionGroup.add(new CompileAction(leftFieldText, rightFieldText, groovyShell, project));
             defaultActionGroup.add(new InstallAction(leftFieldText, rightFieldText, groovyShell, coderSourceBox, baseCoders, dynamicCoders, project));
