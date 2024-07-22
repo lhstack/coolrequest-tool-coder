@@ -11,7 +11,7 @@ import java.util.Map;
 
 public class GlobalStateManager {
 
-    private static Map<String, GlobalState> globalStateCache = new HashMap<>();
+    private static final Map<String, GlobalState> globalStateCache = new HashMap<>();
 
     /**
      * 持久化state
@@ -19,7 +19,7 @@ public class GlobalStateManager {
     public static synchronized void persistence(Project project) {
         GlobalState globalState = globalStateCache.computeIfAbsent(project.getLocationHash(), key -> new GlobalState());
         try {
-            File parent = new File(project.getPresentableUrl(), ".coolrequest");
+            File parent = new File(project.getPresentableUrl(), ".idea/.coolrequest");
             if (!parent.exists()) {
                 parent.mkdirs();
             }
@@ -42,7 +42,7 @@ public class GlobalStateManager {
      */
     public static synchronized GlobalState loadState(Project project) {
         return globalStateCache.computeIfAbsent(project.getLocationHash(), key -> {
-            File parent = new File(project.getPresentableUrl(), ".coolrequest");
+            File parent = new File(project.getPresentableUrl(), ".idea/.coolrequest");
             if (!parent.exists()) {
                 parent.mkdirs();
             }
