@@ -34,7 +34,9 @@ import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.File;
+import java.net.URI;
 import java.net.URL;
+import java.util.Locale;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -88,7 +90,13 @@ public class ScriptView extends JPanel {
                 for (String classPathItems : classPathArray) {
                     for (String classPath : classPathItems.split(",")) {
                         if (StringUtils.isNotBlank(StringUtils.trimToEmpty(classPath))) {
-                            groovyClassLoader.addURL(new File(StringUtils.trimToEmpty(classPath)).toURI().toURL());
+                            try{
+                                URI uri = URI.create(StringUtils.trimToEmpty(classPath));
+                                URL url = uri.toURL();
+                                groovyClassLoader.addURL(url);
+                            }catch (Throwable e){
+                                groovyClassLoader.addURL(new File(StringUtils.trimToEmpty(classPath)).toURI().toURL());
+                            }
                         }
                     }
                 }
