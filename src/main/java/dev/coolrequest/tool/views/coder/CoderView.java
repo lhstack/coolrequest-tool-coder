@@ -22,7 +22,9 @@ import dev.coolrequest.tool.components.MultiLanguageTextField;
 import dev.coolrequest.tool.components.PopupMenu;
 import dev.coolrequest.tool.components.SimpleFrame;
 import dev.coolrequest.tool.state.GlobalState;
-import dev.coolrequest.tool.state.GlobalStateManager;
+import dev.coolrequest.tool.state.ProjectState;
+import dev.coolrequest.tool.state.ProjectStateManager;
+import dev.coolrequest.tool.state.Scope;
 import dev.coolrequest.tool.utils.ClassLoaderUtils;
 import dev.coolrequest.tool.utils.ComponentUtils;
 import dev.coolrequest.tool.views.coder.custom.*;
@@ -87,11 +89,17 @@ public class CoderView extends JPanel implements DocumentListener {
         this.rightTextField.setEnabled(false);
         leftSource = new LeftSource();
         rightTarget = new RightTarget(project, createGroovyShell(project));
-        GlobalState globalState = GlobalStateManager.loadState(project);
-        String customCoderScript = globalState.getOptionalStrCache(CacheConstant.CODER_VIEW_CUSTOM_CODER_SCRIPT_CODE).orElse(null);
-        if (customCoderScript != null) {
+        ProjectState projectState = ProjectStateManager.load(project);
+        String customCoderScript = projectState.getOpStrCache(CacheConstant.CODER_VIEW_CUSTOM_CODER_SCRIPT_CODE).orElse(null);
+        String globalCustomCoderScript = GlobalState.getOpStrCache(CacheConstant.CODER_VIEW_CUSTOM_CODER_SCRIPT_CODE).orElse(null);
+        if (customCoderScript != null || globalCustomCoderScript != null) {
             logger.info("load custom coders");
-            loadCustomCoders(customCoderScript, createGroovyShell(project));
+            if (customCoderScript != null) {
+                loadCustomCoders(customCoderScript, createGroovyShell(project));
+            }
+            if (globalCustomCoderScript != null) {
+                loadCustomCoders(globalCustomCoderScript, createGroovyShell(project));
+            }
         } else {
             //左侧下拉框内容
             Set<String> source = new LinkedHashSet<>();
@@ -140,7 +148,8 @@ public class CoderView extends JPanel implements DocumentListener {
         binding.setVariable("coder", coderRegistry);
         binding.setVariable("sysLog", logger);
         binding.setVariable("log", logger);
-        binding.setVariable("env", GlobalStateManager.loadState(this.project).getJsonObjCache(CacheConstant.CODER_VIEW_CUSTOM_CODER_ENVIRONMENT));
+        binding.setVariable("projectEnv", ProjectStateManager.load(this.project).getJsonObjCache(CacheConstant.CODER_VIEW_CUSTOM_CODER_ENVIRONMENT));
+        binding.setVariable("globalEnv", GlobalState.getJsonObjCache(CacheConstant.CODER_VIEW_CUSTOM_CODER_ENVIRONMENT));
         Script script = groovyShell.get().parse(customCoderScript);
         script.setBinding(binding);
         FutureTask<Object> futureTask = new FutureTask<>(script::run);
@@ -196,7 +205,7 @@ public class CoderView extends JPanel implements DocumentListener {
 
         return () -> {
             GroovyShell groovyShell = new GroovyShell(CoderView.class.getClassLoader());
-            if (GlobalStateManager.loadState(project).isCustomCoderUsingProjectLibrary()) {
+            if (ProjectStateManager.load(project).isCustomCoderUsingProjectLibrary()) {
                 try {
                     for (Library library : LibraryTablesRegistrar.getInstance().getLibraryTable(project).getLibraries()) {
                         for (VirtualFile file : library.getFiles(OrderRootType.CLASSES)) {
@@ -304,13 +313,14 @@ public class CoderView extends JPanel implements DocumentListener {
         private JComponent createCustomCoderPanel(Supplier<GroovyShell> groovyShell, List<Runnable> disposeRegistry) {
             LanguageFileType groovyFileType = (LanguageFileType) FileTypeManager.getInstance().getFileTypeByExtension("groovy");
             MultiLanguageTextField leftFieldText = new MultiLanguageTextField(groovyFileType, project);
-            String script = GlobalStateManager.loadState(project).getOptionalStrCache(CacheConstant.CODER_VIEW_CUSTOM_CODER_SCRIPT_CODE).orElse(null);
-            if (script != null) {
-                if (StringUtils.isNotBlank(script)) {
-                    leftFieldText.setText(script);
-                }
+            ProjectState projectState = ProjectStateManager.load(project);
+            if (projectState.getScope() == Scope.PROJECT) {
+                String script = projectState.getOpStrCache(CacheConstant.CODER_VIEW_CUSTOM_CODER_SCRIPT_CODE).orElse("");
+                leftFieldText.setText(script);
+            } else {
+                String script = GlobalState.getOpStrCache(CacheConstant.CODER_VIEW_CUSTOM_CODER_SCRIPT_CODE).orElse("");
+                leftFieldText.setText(script);
             }
-
             JBTextArea rightFieldText = new JBTextArea();
             rightFieldText.setEditable(false);
             //设置actionGroup
@@ -321,6 +331,7 @@ public class CoderView extends JPanel implements DocumentListener {
             defaultActionGroup.add(new InstallAction(leftFieldText, rightFieldText, groovyShell, coderSourceBox, baseCoders, dynamicCoders, project));
             defaultActionGroup.add(new UsingProjectLibraryAction(project));
             defaultActionGroup.add(new RunAction(leftFieldText, rightFieldText, groovyShell, project));
+            defaultActionGroup.add(new ChangeScopeAction(leftFieldText, project));
             SimpleToolWindowPanel panel = new SimpleToolWindowPanel(true, false);
             ActionToolbar actionToolbar = ActionManager.getInstance().createActionToolbar("custom.coder", defaultActionGroup, false);
             panel.setToolbar(actionToolbar.getComponent());

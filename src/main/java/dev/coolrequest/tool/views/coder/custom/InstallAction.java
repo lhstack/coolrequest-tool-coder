@@ -8,7 +8,9 @@ import com.intellij.ui.components.JBTextArea;
 import dev.coolrequest.tool.common.*;
 import dev.coolrequest.tool.components.MultiLanguageTextField;
 import dev.coolrequest.tool.state.GlobalState;
-import dev.coolrequest.tool.state.GlobalStateManager;
+import dev.coolrequest.tool.state.ProjectState;
+import dev.coolrequest.tool.state.ProjectStateManager;
+import dev.coolrequest.tool.state.Scope;
 import dev.coolrequest.tool.views.coder.Coder;
 import groovy.lang.Binding;
 import groovy.lang.GroovyShell;
@@ -37,6 +39,7 @@ public class InstallAction extends AnAction {
     private final List<Coder> dynamicCoders;
     private final Project project;
     private final Logger logger;
+    private final ProjectState projectState;
 
     public InstallAction(MultiLanguageTextField codeTextField, JBTextArea outputTextField, Supplier<GroovyShell> groovyShell, JComboBox<String> coderSourceBox, List<Coder> baseCoders, List<Coder> dynamicCoders, Project project) {
         super(() -> I18n.getString("coder.custom.install", project), Icons.INSTALL);
@@ -47,6 +50,7 @@ public class InstallAction extends AnAction {
         this.baseCoders = baseCoders;
         this.dynamicCoders = dynamicCoders;
         this.project = project;
+        this.projectState = ProjectStateManager.load(project);
         this.logger = LogContext.getInstance(project).getLogger(InstallAction.class);
     }
 
@@ -62,7 +66,8 @@ public class InstallAction extends AnAction {
             binding.setVariable("coder", coderRegistry);
             binding.setVariable("log", contextLogger);
             binding.setVariable("sysLog", this.logger);
-            binding.setVariable("env",GlobalStateManager.loadState(project).getJsonObjCache(CacheConstant.CODER_VIEW_CUSTOM_CODER_ENVIRONMENT));
+            binding.setVariable("projectEnv", ProjectStateManager.load(project).getJsonObjCache(CacheConstant.CODER_VIEW_CUSTOM_CODER_ENVIRONMENT));
+            binding.setVariable("globalEnv", GlobalState.getJsonObjCache(CacheConstant.CODER_VIEW_CUSTOM_CODER_ENVIRONMENT));
             Script script = this.groovyShell.get().parse(code);
             script.setBinding(binding);
             FutureTask<Object> futureTask = new FutureTask<>(script::run);
@@ -88,9 +93,12 @@ public class InstallAction extends AnAction {
                 coderSourceBox.removeAllItems();
                 //添加到box中
                 source.forEach(coderSourceBox::addItem);
-                GlobalState globalState = GlobalStateManager.loadState(project);
-                globalState.putCache(CacheConstant.CODER_VIEW_CUSTOM_CODER_SCRIPT_CODE, codeTextField.getText());
-                GlobalStateManager.persistence(project);
+                if (this.projectState.getScope() == Scope.PROJECT) {
+                    projectState.putCache(CacheConstant.CODER_VIEW_CUSTOM_CODER_SCRIPT_CODE, codeTextField.getText());
+                    ProjectStateManager.store(project);
+                } else if (this.projectState.getScope() == Scope.GLOBAL) {
+                    GlobalState.putCache(CacheConstant.CODER_VIEW_CUSTOM_CODER_SCRIPT_CODE, codeTextField.getText());
+                }
                 contextLogger.info("");
                 contextLogger.info("安装成功的 coders: " + coderRegistry.getRegistryCoders());
             }

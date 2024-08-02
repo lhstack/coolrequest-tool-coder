@@ -9,15 +9,15 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
-public class GlobalStateManager {
+public class ProjectStateManager {
 
-    private static final Map<String, GlobalState> globalStateCache = new HashMap<>();
+    private static final Map<String, ProjectState> globalStateCache = new HashMap<>();
 
     /**
      * 持久化state
      */
-    public static synchronized void persistence(Project project) {
-        GlobalState globalState = globalStateCache.computeIfAbsent(project.getLocationHash(), key -> new GlobalState());
+    public static synchronized void store(Project project) {
+        ProjectState projectState = globalStateCache.computeIfAbsent(project.getLocationHash(), key -> new ProjectState());
         try {
             File parent = new File(project.getPresentableUrl(), ".idea/.coolrequest");
             if (!parent.exists()) {
@@ -28,7 +28,7 @@ public class GlobalStateManager {
                 file.createNewFile();
             }
             Gson gson = new Gson();
-            String json = gson.toJson(globalState);
+            String json = gson.toJson(projectState);
             FileUtils.write(file, json, StandardCharsets.UTF_8);
         } catch (Throwable e) {
             e.printStackTrace();
@@ -40,7 +40,7 @@ public class GlobalStateManager {
      *
      * @return
      */
-    public static synchronized GlobalState loadState(Project project) {
+    public static synchronized ProjectState load(Project project) {
         return globalStateCache.computeIfAbsent(project.getLocationHash(), key -> {
             File parent = new File(project.getPresentableUrl(), ".idea/.coolrequest");
             if (!parent.exists()) {
@@ -51,12 +51,12 @@ public class GlobalStateManager {
                 try {
                     byte[] bytes = FileUtils.readFileToByteArray(file);
                     Gson gson = new Gson();
-                    return gson.fromJson(new String(bytes, StandardCharsets.UTF_8), GlobalState.class);
+                    return gson.fromJson(new String(bytes, StandardCharsets.UTF_8), ProjectState.class);
                 } catch (Throwable e) {
                     e.printStackTrace();
                 }
             }
-            return new GlobalState();
+            return new ProjectState();
         });
     }
 
