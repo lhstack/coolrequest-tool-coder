@@ -22,7 +22,6 @@ public class MainPanel extends JPanel implements CoolToolPanel {
         setLayout(new BorderLayout());
         try {
             JBTabs jbTabs = new JBTabsImpl(project);
-
             TabInfo encoderTabInfo = new TabInfo(new CoderView(project));
             encoderTabInfo.setText(I18n.getString("coder.title", project));
             jbTabs.addTab(encoderTabInfo);
@@ -38,7 +37,7 @@ public class MainPanel extends JPanel implements CoolToolPanel {
         } catch (Throwable e) {
             JDialog jd = new JDialog();
             jd.setTitle("启动插件失败提示");
-            jd.setSize(600,400);
+            jd.setSize(600, 400);
             jd.setAlwaysOnTop(true);
             JBTextArea jbTextArea = new JBTextArea();
             jbTextArea.setEditable(false);

@@ -1,80 +1,92 @@
 package dev.coolrequest.tool.state;
 
 import com.alibaba.fastjson2.JSONObject;
+import com.intellij.openapi.ui.Messages;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 
 public class GlobalState {
 
-    private String i18n = Locale.CHINESE.getLanguage();
+    private static final File GLOBAL_FILE;
 
-    /**
-     * 自定义coder使用项目依赖
-     */
-    private boolean customCoderUsingProjectLibrary = false;
+    private static GlobalState INSTANCE;
 
-    private final Map<String, Object> cache = new HashMap<String, Object>();
-
-    public String getI18n() {
-        return i18n;
+    static {
+        File parent = new File(System.getProperty("user.home") + "/.config/.cool-request/request/coder");
+        if (!parent.exists()) {
+            parent.mkdirs();
+        }
+        GLOBAL_FILE = new File(parent, ".coder.json");
+        if (!GLOBAL_FILE.exists()) {
+            try {
+                GLOBAL_FILE.createNewFile();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            INSTANCE = new GlobalState();
+        } else {
+            try {
+                byte[] bytes = FileUtils.readFileToByteArray(GLOBAL_FILE);
+                INSTANCE = JSONObject.parseObject(new String(bytes, StandardCharsets.UTF_8), GlobalState.class);
+                INSTANCE = INSTANCE == null ? new GlobalState() : INSTANCE;
+            } catch (IOException e) {
+                INSTANCE = new GlobalState();
+                throw new RuntimeException(e);
+            }
+        }
     }
 
-    public GlobalState setI18n(String i18n) {
-        this.i18n = i18n;
-        return this;
-    }
+    private Map<String, Object> cache = new HashMap<String, Object>();
 
-    public GlobalState putCache(String key, Object value) {
-        cache.put(key, value);
-        return this;
-    }
-
-    public Object getCache(String key) {
-        return cache.get(key);
-    }
-
-    public boolean isCustomCoderUsingProjectLibrary() {
-        return customCoderUsingProjectLibrary;
-    }
-
-    public GlobalState setCustomCoderUsingProjectLibrary(boolean customCoderUsingProjectLibrary) {
-        this.customCoderUsingProjectLibrary = customCoderUsingProjectLibrary;
-        return this;
-    }
 
     public Map<String, Object> getCache() {
         return cache;
     }
 
-    public Locale getLocale() {
-        return Locale.forLanguageTag(this.i18n);
+    public void setCache(Map<String, Object> cache) {
+        this.cache = cache;
     }
 
-    public Optional<String> getOptionalStrCache(String key) {
-        return Optional.ofNullable(this.getCache(key)).map(String::valueOf).filter(StringUtils::isNotBlank);
-    }
-
-    public boolean getBooleanCache(String name) {
-        Object o = cache.get(name);
-        if (o == null) {
-            return false;
+    public static void putCache(String key, Object value) {
+        INSTANCE.cache.put(key, value);
+        try {
+            FileUtils.write(GLOBAL_FILE, JSONObject.toJSONString(INSTANCE), StandardCharsets.UTF_8);
+        } catch (Throwable e) {
+            throw new RuntimeException(e);
         }
-        return Boolean.parseBoolean(String.valueOf(o));
     }
 
-    public void removeCache(String name) {
-        cache.remove(name);
+    public static Object getCache(String key) {
+        return INSTANCE.cache.get(key);
     }
 
-    public Object getJsonObjCache(String name) {
-        Object obj = cache.get(name);
+    public static Optional<String> getOpStrCache(String key) {
+        return Optional.ofNullable(getCache(key)).map(String::valueOf).filter(StringUtils::isNotBlank);
+    }
+
+    public static Object getJsonObjCache(String name) {
+        Object obj = INSTANCE.cache.get(name);
         if (obj == null) {
             return new JSONObject();
         }
         return obj;
     }
+
+    public static void removeCache(String name) {
+        INSTANCE.cache.remove(name);
+        try {
+            FileUtils.write(GLOBAL_FILE, JSONObject.toJSONString(INSTANCE), StandardCharsets.UTF_8);
+        } catch (Throwable e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+
 }

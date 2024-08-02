@@ -6,7 +6,8 @@ import com.intellij.openapi.project.Project;
 import com.intellij.ui.components.JBTextArea;
 import dev.coolrequest.tool.common.*;
 import dev.coolrequest.tool.components.MultiLanguageTextField;
-import dev.coolrequest.tool.state.GlobalStateManager;
+import dev.coolrequest.tool.state.GlobalState;
+import dev.coolrequest.tool.state.ProjectStateManager;
 import groovy.lang.Binding;
 import groovy.lang.GroovyShell;
 import groovy.lang.Script;
@@ -48,7 +49,10 @@ public class RunAction extends AnAction {
                 binding.setVariable("coder", coderRegistry);
                 binding.setVariable("log", contextLogger);
                 binding.setVariable("sysLog", this.logger);
-                binding.setVariable("env", GlobalStateManager.loadState(project).getJsonObjCache(CacheConstant.CODER_VIEW_CUSTOM_CODER_ENVIRONMENT));
+                //项目环境变量
+                binding.setVariable("projectEnv", ProjectStateManager.load(project).getJsonObjCache(CacheConstant.CODER_VIEW_CUSTOM_CODER_ENVIRONMENT));
+                //全局环境变量
+                binding.setVariable("globalEnv", GlobalState.getJsonObjCache(CacheConstant.CODER_VIEW_CUSTOM_CODER_ENVIRONMENT));
                 script.setBinding(binding);
                 FutureTask<Object> futureTask = new FutureTask<>(script::run);
                 try {
